@@ -22,4 +22,14 @@ The in-memory session limit is 64 MiB, with 750 KB per event and batches below t
 
 `npm run lint` checks ESLint rules, Prettier formatting, and unused code and dependencies with Knip. Run `npm run format` to apply formatting.
 
-`npm ci`, `npm test`, and `npm run e2e` run unit tests and Chromium browser tests. Install Chromium with `npx playwright install chromium` first. The package contains build-free ES modules and can be installed from an immutable Git commit until npm publishing is configured. Consumers bundle `src/worker.js` as a separate module worker alongside their renderer bundle; the backend copies the source modules to its static player assets.
+The repository follows the npm workspace layout used by explorer-view and about-view:
+
+- `packages/session-replay-worker`: runtime source modules, package exports, and unit tests.
+- `packages/build`: bundles the worker and browser adapters into a standalone package at `.tmp/dist`, including its package manifest, README, and license.
+- `packages/e2e`: Playwright configuration, browser fixtures, test server, and replay scenarios. These tests serve the built package.
+
+Run `npm ci` to install workspace dependencies, `npm run build` to create the distribution, and `npm test` to run the worker and package checks. Install Chromium with `npm exec --workspace=packages/e2e -- playwright install chromium`, then run `npm run e2e` (or `npm run e2e:headless`). The e2e server builds the distribution before starting. Formatting is shared at the root through `npm run format:check`.
+
+The distribution retains the `@lvce-editor/session-replay-worker` name and the `./capture`, `./client`, `./player`, and `./worker` exports. Its standalone worker entry is `dist/sessionReplayWorkerMain.js`. Build versions follow `RG_VERSION`, `GIT_TAG`, or an exact Git tag, falling back to `0.0.0-dev`.
+
+Existing renderer and backend consumers remain pinned to the earlier flat-layout Git commit. For new local integrations, install the built `.tmp/dist` package; the monorepo root is private and is not the runtime package. npm publication is not configured yet.

@@ -1,5 +1,20 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["test/**/*.test.js", "e2e/server.js"],
-  "project": ["*.js", "src/**/*.js", "test/**/*.js", "e2e/**/*.js"]
+  "workspaces": {
+    ".": {
+      "project": ["*.js"]
+    },
+    "packages/build": {
+      "entry": ["test/**/*.test.js"],
+      "project": ["src/**/*.js", "test/**/*.js"]
+    },
+    "packages/e2e": {
+      "entry": ["server.js"],
+      "project": ["*.js"]
+    },
+    "packages/session-replay-worker": {
+      "entry": ["test/**/*.test.js"],
+      "project": ["src/**/*.js", "test/**/*.js"]
+    }
+  }
 }
