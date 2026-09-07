@@ -18,6 +18,12 @@ Frames are sampled at 100 ms while the DOM or CSS changes. Playback uses the las
 
 The in-memory session limit is 64 MiB, with 750 KB per event and batches below the backend's 1 MB body limit. Local events commit to IndexedDB in order. Uploads flush every two seconds, retry the same batch after failure, and use server deduplication. Failed pending uploads survive while the recording worker is alive; automatic retry after closing the tab is not supported. Local recordings remain exportable. Local storage follows browser quota/eviction policies; there is no automatic local retention cleanup yet.
 
+## GitHub Pages
+
+Open exported JSON recordings at [the session replay player](https://lvce-editor.github.io/session-replay-worker/). Recordings are read locally in the browser and are not uploaded.
+
+`npm run build:static` creates the site in `.tmp/static`. Pushes to `main` deploy that directory to GitHub Pages after the tests pass. The repository's Pages source must be set to GitHub Actions.
+
 ## Development
 
 `npm run lint` checks ESLint rules, Prettier formatting, and unused code and dependencies with Knip. Run `npm run format` to apply formatting.

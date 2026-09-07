@@ -4,11 +4,19 @@ import { resolve, sep } from 'node:path'
 
 const fixtures = import.meta.dirname
 const dist = resolve(fixtures, '../../.tmp/dist/dist')
+const site = resolve(fixtures, '../../.tmp/static')
 createServer(async (req, res) => {
   try {
     const path = new URL(req.url, 'http://localhost').pathname
-    const root = path.startsWith('/dist/') ? dist : fixtures
-    const relativePath = root === dist ? path.slice('/dist/'.length) : path === '/' ? 'index.html' : path.slice(1)
+    const root = path.startsWith('/session-replay-worker/') ? site : path.startsWith('/dist/') ? dist : fixtures
+    const relativePath =
+      root === site
+        ? path.slice('/session-replay-worker/'.length) || 'index.html'
+        : root === dist
+          ? path.slice('/dist/'.length)
+          : path === '/'
+            ? 'index.html'
+            : path.slice(1)
     const file = resolve(root, relativePath)
     if (!file.startsWith(`${root}${sep}`)) {
       res.writeHead(403).end()

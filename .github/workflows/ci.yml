@@ -28,7 +28,7 @@ jobs:
           key: ${{ runner.os }}-${{ runner.arch }}-cacheNodeModules-${{ hashFiles('package.json', 'package-lock.json', 'packages/*/package.json', '.nvmrc', '.github/workflows/*.yml') }}
       - run: npm ci
         if: steps.npm-cache.outputs.cache-hit != 'true'
-      - run: npm run build
+      - run: npm run build:static
       - run: npm test
       - run: npm run lint
       - name: install playwright system dependencies
@@ -39,3 +39,26 @@ jobs:
         working-directory: packages/e2e
         run: npx playwright install chromium
       - run: npm run e2e:headless
+      - name: Upload Pages artifact
+        if: matrix.os == 'ubuntu-24.04'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ./.tmp/static
+
+  deploy:
+    needs: ci
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

@@ -28,7 +28,7 @@ jobs:
           key: ${{ runner.os }}-${{ runner.arch }}-cacheNodeModules-${{ hashFiles('package.json', 'package-lock.json', 'packages/*/package.json', '.nvmrc', '.github/workflows/*.yml') }}
       - run: npm ci
         if: steps.npm-cache.outputs.cache-hit != 'true'
-      - run: npm run build
+      - run: npm run build:static
       - run: npm test
       - run: npm run lint
       - name: install playwright system dependencies
