@@ -38,4 +38,4 @@ Run `npm ci` to install workspace dependencies, `npm run build` to create the di
 
 The distribution retains the `@lvce-editor/session-replay-worker` name and the `./capture`, `./client`, `./player`, and `./worker` exports. Its standalone worker entry is `dist/sessionReplayWorkerMain.js`. Build versions follow `RG_VERSION`, `GIT_TAG`, or an exact Git tag, falling back to `0.0.0-dev`.
 
-Existing renderer and backend consumers remain pinned to the earlier flat-layout Git commit. For new local integrations, install the built `.tmp/dist` package; the monorepo root is private and is not the runtime package. npm publication is not configured yet.
+Existing renderer and backend consumers remain pinned to the earlier flat-layout Git commit. For new local integrations, install the built `.tmp/dist` package; the monorepo root is private and is not the runtime package. Pull requests and pushes to `main` run the PR and CI workflows across Linux, macOS, and Windows. Pushing a version tag such as `v1.0.0` runs the release workflow, which validates the tagged build, publishes `.tmp/dist` to npm using the `NPM_TOKEN` repository secret, and publishes the GitHub release.
