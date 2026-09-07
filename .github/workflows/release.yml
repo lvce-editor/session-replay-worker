@@ -41,8 +41,8 @@ jobs:
           package-manager-cache: false
       - run: npm ci
       - run: npm run build
-      - run: npm run typecheck
       - run: npm test
+      - run: npm run type-check
       - run: npm run lint
       - name: install playwright system dependencies
         if: runner.os == 'Linux'

@@ -20,7 +20,7 @@
     "format:check": "prettier --check .",
     "lint": "eslint . && prettier --check . && knip --no-config-hints",
     "test": "npm test --workspaces --if-present",
-    "typecheck": "tsc --noEmit"
+    "type-check": "tsc -b"
   },
   "devDependencies": {
     "@lvce-editor/eslint-config": "^18.9.0",
