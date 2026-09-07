@@ -1,12 +1,37 @@
+import type { FrameLocator, Page } from '@playwright/test'
 import { test, expect } from '@playwright/test'
+import type { capture, observe } from '../session-replay-worker/src/capture.js'
+import type { mountPlayer } from '../session-replay-worker/src/player.js'
+import type { createRecorder } from '../session-replay-worker/src/recorder.js'
+
+type Session = ReturnType<ReturnType<typeof createRecorder>['export']>
+
+interface TestClient {
+  dispose(): void
+  invoke(method: 'start', options: { local: boolean; upload: boolean }): Promise<string>
+  invoke(method: 'export'): Promise<Session>
+  invoke(method: 'status'): Promise<{ events: number }>
+  invoke(method: string, ...params: unknown[]): Promise<unknown>
+}
+
+declare global {
+  interface Window {
+    api: { capture: typeof capture; createClient: (url: string) => TestClient; mountPlayer: typeof mountPlayer; observe: typeof observe }
+    client: TestClient
+    hacked?: boolean
+    localId: string
+    session: Session
+    stopRecording: () => void
+  }
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await page.waitForFunction(() => window.api)
 })
-const roundTrip = async (page, change = '') => {
-  await page.evaluate(async (change) => {
-    if (change) new Function(change)()
+const roundTrip = async (page: Page, change = ''): Promise<FrameLocator> => {
+  if (change) await page.evaluate(change)
+  await page.evaluate(async () => {
     const client = window.api.createClient('/dist/sessionReplayWorkerMain.js')
     const id = await client.invoke('start', { local: true, upload: false })
     await client.invoke('record', 'frame', window.api.capture(document))
@@ -14,14 +39,16 @@ const roundTrip = async (page, change = '') => {
     window.localId = id
     await client.invoke('stop')
     client.dispose()
-    await window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { localId: id } })
-  }, change)
+    await window.api.mountPlayer(document.body, { source: { localId: id }, workerUrl: '/dist/sessionReplayWorkerMain.js' })
+  })
   return page.frameLocator('iframe')
 }
 
 test('replays the assembled explorer and editor DOM using only the replay worker', async ({ page }) => {
-  const workers = []
-  page.on('worker', (worker) => workers.push(worker.url()))
+  const workers: string[] = []
+  page.on('worker', (worker) => {
+    workers.push(worker.url())
+  })
   const replay = await roundTrip(page)
   await expect(replay.locator('.Explorer')).toContainText('hello.js')
   await expect(replay.locator('.Editor')).toContainText('const answer = 42')
@@ -93,30 +120,30 @@ test('local recordings survive page reload', async ({ page }) => {
   await page.reload()
   await page.waitForFunction(() => window.api)
   await page.evaluate(
-    async (localId) => window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { localId } }),
+    async (localId) => window.api.mountPlayer(document.body, { source: { localId }, workerUrl: '/dist/sessionReplayWorkerMain.js' }),
     id,
   )
   await expect(page.frameLocator('iframe').locator('.Editor')).toContainText('const answer')
 })
 
-const timeline = async (page) =>
+const timeline = async (page: Page): Promise<void> =>
   page.evaluate(async () => {
     const before = window.api.capture(document)
-    document.querySelector('.Editor').textContent = 'edited after typing'
-    document.querySelector('.Explorer').remove()
+    document.querySelector('.Editor')!.textContent = 'edited after typing'
+    document.querySelector('.Explorer')!.remove()
     const after = window.api.capture(document)
     await window.api.mountPlayer(document.body, {
-      workerUrl: '/dist/sessionReplayWorkerMain.js',
       source: {
         session: {
-          version: 1,
           events: [
-            { sequence: 0, timestamp: 0, type: 'frame', data: before },
-            { sequence: 1, timestamp: 1000, type: 'frame', data: after },
-            { sequence: 2, timestamp: 1500, type: 'message', data: {} },
+            { data: before, sequence: 0, timestamp: 0, type: 'frame' },
+            { data: after, sequence: 1, timestamp: 1000, type: 'frame' },
+            { data: {}, sequence: 2, timestamp: 1500, type: 'message' },
           ],
+          version: 1,
         },
       },
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
     })
   })
 
@@ -133,9 +160,9 @@ test('dragging the progress bar seeks forward and backward across removals', asy
 
 test('play advances in time and stops at the end', async ({ page }) => {
   await timeline(page)
-  await page.getByRole('button', { name: 'Play', exact: true }).click()
+  await page.getByRole('button', { exact: true, name: 'Play' }).click()
   await expect(page.frameLocator('iframe').locator('.Editor')).toHaveText('edited after typing')
-  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { exact: true, name: 'Play' })).toBeVisible()
   await expect(page.getByRole('slider')).toHaveValue('1500')
 })
 
@@ -145,7 +172,7 @@ test('local file JSON can be replayed without its original workers', async ({ pa
   await page.reload()
   await page.waitForFunction(() => window.api)
   await page.evaluate(
-    async (session) => window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { session } }),
+    async (session) => window.api.mountPlayer(document.body, { source: { session }, workerUrl: '/dist/sessionReplayWorkerMain.js' }),
     session,
   )
   await expect(page.frameLocator('iframe').locator('.Editor')).toContainText('const answer')
@@ -155,64 +182,76 @@ test('captures DOM mutations and CSSOM updates while recording', async ({ page }
   await page.evaluate(async () => {
     window.client = window.api.createClient('/dist/sessionReplayWorkerMain.js')
     await window.client.invoke('start', { local: false, upload: false })
-    window.stop = window.api.observe(
+    window.stopRecording = window.api.observe(
       document,
-      (type, data) => window.client.invoke('record', type, data),
-      (error) => {
+      (type: string, data: unknown) => window.client.invoke('record', type, data),
+      (error: unknown) => {
         throw error
       },
     )
   })
-  await expect.poll(() => page.evaluate(async () => (await window.client.invoke('status')).events)).toBeGreaterThan(0)
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const status = await window.client.invoke('status')
+        return status.events
+      }),
+    )
+    .toBeGreaterThan(0)
   await page.evaluate(() => {
-    document.querySelector('.Editor').textContent = 'new content'
+    document.querySelector('.Editor')!.textContent = 'new content'
     document.styleSheets[0].insertRule('.Editor { color: red }', document.styleSheets[0].cssRules.length)
   })
   await expect
-    .poll(() => page.evaluate(async () => JSON.stringify((await window.client.invoke('export')).events.at(-1).data)))
+    .poll(() =>
+      page.evaluate(async () => {
+        const session = await window.client.invoke('export')
+        return JSON.stringify(session.events.at(-1)!.data)
+      }),
+    )
     .toContain('new content')
   await page.evaluate(async () => {
-    window.stop()
+    window.stopRecording()
     const session = await window.client.invoke('export')
     window.client.dispose()
-    await window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { session } })
+    await window.api.mountPlayer(document.body, { source: { session }, workerUrl: '/dist/sessionReplayWorkerMain.js' })
   })
-  await page.getByRole('slider').fill(await page.getByRole('slider').getAttribute('max'))
+  await page.getByRole('slider').fill((await page.getByRole('slider').getAttribute('max'))!)
   await expect(page.frameLocator('iframe').locator('.Editor')).toHaveCSS('color', 'rgb(255, 0, 0)')
 })
 
 test('malicious imported commands, event handlers and resource URLs never execute', async ({ page }) => {
-  const requests = []
+  const requests: string[] = []
   await page.route('https://evil.invalid/**', (route) => {
     requests.push(route.request().url())
     return route.abort()
   })
   await page.evaluate(async () => {
     const session = {
-      version: 1,
       events: [
         {
-          sequence: 0,
-          timestamp: 0,
-          type: 'frame',
           data: {
             dom: {
-              tag: 'div',
               attrs: { onclick: 'parent.hacked=true' },
               children: [
-                { tag: 'script', children: [{ text: 'parent.hacked=true' }] },
-                { tag: 'img', attrs: { src: 'https://evil.invalid/image', onerror: 'parent.hacked=true' } },
-                { tag: 'iframe', attrs: { srcdoc: '<script>parent.hacked=true</script>' } },
-                { tag: 'a', attrs: { href: 'javascript:parent.hacked=true' }, children: [{ text: 'link' }] },
+                { children: [{ text: 'parent.hacked=true' }], tag: 'script' },
+                { attrs: { onerror: 'parent.hacked=true', src: 'https://evil.invalid/image' }, tag: 'img' },
+                { attrs: { srcdoc: '<script>parent.hacked=true</script>' }, tag: 'iframe' },
+                { attrs: { href: 'javascript:parent.hacked=true' }, children: [{ text: 'link' }], tag: 'a' },
               ],
+              tag: 'div',
             },
             styles: ['@import "https://evil.invalid/style"; div { background:url(https://evil.invalid/pixel) }'],
             viewport: [800, 600],
           },
+          sequence: 0,
+          timestamp: 0,
+          type: 'frame',
         },
       ],
+      version: 1,
     }
-    await window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { session } })
+    await window.api.mountPlayer(document.body, { source: { session }, workerUrl: '/dist/sessionReplayWorkerMain.js' })
   })
   await expect(page.frameLocator('iframe').locator('script, iframe, [onclick], [onerror], [href], [src]')).toHaveCount(0)
   expect(await page.evaluate(() => window.hacked)).toBeUndefined()
@@ -221,7 +260,7 @@ test('malicious imported commands, event handlers and resource URLs never execut
 
 test('missing local replay displays a useful error', async ({ page }) => {
   await page.evaluate(async () =>
-    window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { localId: 'missing' } }),
+    window.api.mountPlayer(document.body, { source: { localId: 'missing' }, workerUrl: '/dist/sessionReplayWorkerMain.js' }),
   )
   await expect(page.locator('output')).toContainText('not found')
   await expect(page.getByRole('slider')).toBeDisabled()
@@ -229,7 +268,7 @@ test('missing local replay displays a useful error', async ({ page }) => {
 
 test('invalid replay version is rejected', async ({ page }) => {
   await page.evaluate(async () =>
-    window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { session: { version: 99, events: [] } } }),
+    window.api.mountPlayer(document.body, { source: { session: { events: [], version: 99 } }, workerUrl: '/dist/sessionReplayWorkerMain.js' }),
   )
   await expect(page.locator('output')).toContainText('Unsupported')
 })

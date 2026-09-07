@@ -1,22 +1,21 @@
-import assert from 'node:assert/strict'
+import { expect, test } from '@jest/globals'
 import { execFileSync } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { test } from 'node:test'
 import { pathToFileURL } from 'node:url'
 
 test('the built package contains runnable exports without monorepo files', async () => {
   execFileSync(process.execPath, [resolve(import.meta.dirname, '../src/build.js')])
   const dist = resolve(import.meta.dirname, '../../../.tmp/dist')
   const manifest = JSON.parse(await readFile(resolve(dist, 'package.json'), 'utf8'))
-  assert.equal(manifest.name, '@lvce-editor/session-replay-worker')
-  assert.equal(manifest.main, 'dist/sessionReplayWorkerMain.js')
-  assert.equal(manifest.scripts, undefined)
-  assert.equal(manifest.workspaces, undefined)
-  const [packed] = JSON.parse(
-    execFileSync(process.execPath, [process.env.npm_execpath, 'pack', '--dry-run', '--json'], { cwd: dist, encoding: 'utf8' }),
-  )
-  assert.deepEqual(packed.files.map(({ path }) => path).sort(), [
+  expect(manifest.name).toBe('@lvce-editor/session-replay-worker')
+  expect(manifest.main).toBe('dist/sessionReplayWorkerMain.js')
+  expect(manifest.scripts).toBeUndefined()
+  expect(manifest.workspaces).toBeUndefined()
+  const npmPath = process.env.npm_execpath
+  if (!npmPath) throw new Error('Run this test through npm test')
+  const [packed] = JSON.parse(execFileSync(process.execPath, [npmPath, 'pack', '--dry-run', '--json'], { cwd: dist, encoding: 'utf8' }))
+  expect(packed.files.map(({ path }: { path: string }) => path).sort()).toEqual([
     'LICENSE',
     'README.md',
     'dist/capture.js',
@@ -31,7 +30,7 @@ test('the built package contains runnable exports without monorepo files', async
     ['player', 'mountPlayer'],
   ]) {
     const module = await import(pathToFileURL(resolve(dist, manifest.exports[`./${name}`])).href)
-    assert.equal(typeof module[exportedFunction], 'function')
+    expect(typeof module[exportedFunction]).toBe('function')
   }
-  assert.equal(manifest.exports['./worker'], `./${manifest.main}`)
+  expect(manifest.exports['./worker']).toBe(`./${manifest.main}`)
 })

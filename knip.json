@@ -5,16 +5,16 @@
       "project": ["*.js"]
     },
     "packages/build": {
-      "entry": ["test/**/*.test.js"],
-      "project": ["src/**/*.js", "test/**/*.js"]
+      "entry": ["test/**/*.test.ts"],
+      "project": ["src/**/*.js", "test/**/*.ts"]
     },
     "packages/e2e": {
       "entry": ["server.js"],
-      "project": ["*.js"]
+      "project": ["*.js", "*.ts"]
     },
     "packages/session-replay-worker": {
-      "entry": ["test/**/*.test.js"],
-      "project": ["src/**/*.js", "test/**/*.js"]
+      "entry": ["test/**/*.test.ts"],
+      "project": ["src/**/*.js", "test/**/*.ts"]
     }
   }
 }
