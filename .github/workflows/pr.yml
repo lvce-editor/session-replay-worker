@@ -1,0 +1,36 @@
+name: PR
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  pr:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npm run format:check
+      - name: install playwright system dependencies
+        if: runner.os == 'Linux'
+        working-directory: packages/e2e
+        run: npx playwright install-deps chromium
+      - name: install playwright dependencies
+        working-directory: packages/e2e
+        run: npx playwright install chromium
+      - run: npm run e2e:headless
