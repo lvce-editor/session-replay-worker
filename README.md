@@ -26,6 +26,8 @@ Open exported JSON recordings at [the session replay player](https://lvce-editor
 
 ## Development
 
+`npm run lint` checks ESLint rules, Prettier formatting, and unused code and dependencies with Knip. Run `npm run format` to apply formatting.
+
 The repository follows the npm workspace layout used by explorer-view and about-view:
 
 - `packages/session-replay-worker`: runtime source modules, package exports, and unit tests.
