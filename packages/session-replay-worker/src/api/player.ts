@@ -8,7 +8,7 @@ const tags = new Set(
 )
 // The allowlist covers HTML, SVG and accessibility attributes.
 const attributes =
-  /^(class|style|id|title|role|type|checked|disabled|selected|placeholder|width|height|viewBox|d|fill|stroke|cx|cy|r|x|y|x1|x2|y1|y2|points|transform|xmlns|aria-[\w-]+)$/i
+  /^(class|style|id|title|role|type|checked|disabled|selected|placeholder|width|height|viewBox|d|fill|stroke|cx|cy|r|x|y|x1|x2|y1|y2|points|transform|xmlns|data-[\w-]+|aria-[\w-]+)$/i
 
 export const renderFrame = (document: Document, frame: Frame): void => {
   let count = 0

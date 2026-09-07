@@ -120,3 +120,51 @@ test('ignores arbitrary application commands and diagnostic worker messages', ()
   )
   expect(content.seek(600).frame.dom.children).toHaveLength(1)
 })
+
+test('compact navigation patches keep editor references attached while updating their surrounding tabs', () => {
+  const content = loadContent(
+    session([
+      ...setup,
+      message('Viewlet.createFunctionalRoot', 'Main', 2, true),
+      message('Viewlet.setDom2', 2, [
+        { childCount: 2, className: 'Main', type: V.Div },
+        { childCount: 1, className: 'Header', type: V.Div },
+        { text: 'tab', type: V.Text },
+        { type: V.Reference, uid: 1 },
+      ]),
+      message('Viewlet.appendToBody', 2),
+      message('Viewlet.setTreePatches', 2, [
+        { navigations: [7, 0, 7, 0], type: 18 },
+        { nodes: [{ text: 'updated tab', type: V.Text }], type: 2 },
+        { navigations: [8, 0, 10, 1], type: 18 },
+        { key: 'translate', type: 3, value: '20px 0px' },
+      ]),
+      message('Viewlet.setTreePatches', 1, [
+        { navigations: [7, 0], type: 18 },
+        { type: 1, value: 'editor edit' },
+      ]),
+    ]),
+  )
+  const main = content.seek(800).frame.dom.children?.[0]
+  expect(main?.attrs?.class).toBe('Main')
+  expect(main?.children?.[0].children).toEqual([{ text: 'updated tab' }])
+  expect(main?.children?.[1].children).toEqual([{ text: 'editor edit' }])
+  expect(main?.children?.[1].attrs?.style).toBe('translate:20px 0px')
+  expect(content.seek(600).frame.dom.children?.[0].children?.[1].children).toEqual([{ text: 'before' }])
+})
+
+test('compact navigation can append a referenced view through a placeholder', () => {
+  const content = loadContent(
+    session([
+      ...setup,
+      message('Viewlet.createFunctionalRoot', 'Main', 2, true),
+      message('Viewlet.setDom2', 2, [{ childCount: 0, className: 'Main', type: V.Div }]),
+      message('Viewlet.appendToBody', 2),
+      message('Viewlet.setTreePatches', 2, [
+        { navigations: [7, 0], type: 18 },
+        { type: 11, uid: 1 },
+      ]),
+    ]),
+  )
+  expect(content.seek(700).frame.dom.children?.[0].children?.[0].children).toEqual([{ text: 'before' }])
+})
