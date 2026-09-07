@@ -8,8 +8,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
+      - uses: actions/cache@v6
+        id: npm-cache
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-cacheNodeModules-${{ hashFiles('package.json', 'package-lock.json', '.github/workflows/test.yml') }}
       - run: npm ci
+        if: steps.npm-cache.outputs.cache-hit != 'true'
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
