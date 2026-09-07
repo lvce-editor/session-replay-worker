@@ -1,8 +1,13 @@
 name: Test
 on: [push, pull_request]
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  pr:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -12,7 +17,7 @@ jobs:
         id: npm-cache
         with:
           path: '**/node_modules'
-          key: ${{ runner.os }}-cacheNodeModules-${{ hashFiles('package.json', 'package-lock.json', 'packages/*/package.json', '.nvmrc', '.github/workflows/test.yml') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-cacheNodeModules-${{ hashFiles('package.json', 'package-lock.json', 'packages/*/package.json', '.nvmrc', '.github/workflows/test.yml') }}
       - run: npm ci
         if: steps.npm-cache.outputs.cache-hit != 'true'
       - run: npm run build:static
@@ -22,14 +27,14 @@ jobs:
       - run: npm run e2e
       - run: npm run lint
       - name: Upload Pages artifact
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-24.04'
         uses: actions/upload-pages-artifact@v5
         with:
           path: ./.tmp/static
 
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: test
+    needs: pr
     runs-on: ubuntu-latest
     permissions:
       contents: read
