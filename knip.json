@@ -6,11 +6,11 @@
     },
     "packages/build": {
       "entry": ["test/**/*.test.ts"],
-      "project": ["src/**/*.js", "test/**/*.ts"]
+      "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/e2e": {
-      "entry": ["server.js"],
-      "project": ["*.js", "*.ts"]
+      "entry": ["server.ts"],
+      "project": ["*.ts"]
     },
     "packages/session-replay-worker": {
       "entry": ["test/**/*.test.ts"],

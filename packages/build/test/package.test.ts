@@ -5,7 +5,7 @@ import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 test('the built package contains runnable exports without monorepo files', async () => {
-  execFileSync(process.execPath, [resolve(import.meta.dirname, '../src/build.js')])
+  execFileSync(process.execPath, [resolve(import.meta.dirname, '../src/build.ts')])
   const dist = resolve(import.meta.dirname, '../../../.tmp/dist')
   const manifest = JSON.parse(await readFile(resolve(dist, 'package.json'), 'utf8'))
   expect(manifest.name).toBe('@lvce-editor/session-replay-worker')

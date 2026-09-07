@@ -7,7 +7,7 @@ const root = join(import.meta.dirname, '../../..')
 const dist = join(root, '.tmp/dist')
 const worker = join(root, 'packages/session-replay-worker')
 
-const getVersion = () => {
+const getVersion = (): string => {
   const configured = process.env.RG_VERSION || process.env.GIT_TAG
   if (configured) return configured.replace(/^v/, '')
   try {

@@ -1,35 +1,11 @@
 import type { FrameLocator, Page } from '@playwright/test'
 import { test, expect } from '@playwright/test'
-import type { capture, observe } from '../session-replay-worker/src/capture.js'
-import type { mountPlayer } from '../session-replay-worker/src/player.js'
-import type { createRecorder } from '../session-replay-worker/src/recorder.js'
-
-type Session = ReturnType<ReturnType<typeof createRecorder>['export']>
-
-interface TestClient {
-  dispose(): void
-  invoke(method: 'start', options: { local: boolean; upload: boolean }): Promise<string>
-  invoke(method: 'export'): Promise<Session>
-  invoke(method: 'status'): Promise<{ events: number }>
-  invoke(method: string, ...params: unknown[]): Promise<unknown>
-}
-
-declare global {
-  interface Window {
-    api: { capture: typeof capture; createClient: (url: string) => TestClient; mountPlayer: typeof mountPlayer; observe: typeof observe }
-    client: TestClient
-    hacked?: boolean
-    localId: string
-    session: Session
-    stopRecording: () => void
-  }
-}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await page.waitForFunction(() => window.api)
 })
-const roundTrip = async (page: Page, change = ''): Promise<FrameLocator> => {
+const roundTrip = async (page: Page, change?: () => void): Promise<FrameLocator> => {
   if (change) await page.evaluate(change)
   await page.evaluate(async () => {
     const client = window.api.createClient('/dist/sessionReplayWorkerMain.js')
@@ -74,18 +50,18 @@ for (const [name, html, selector, expected] of [
   })
 
 test('replays changed checkbox properties', async ({ page }) => {
-  const replay = await roundTrip(
-    page,
-    `document.querySelector('.Editor').innerHTML = '<input type="checkbox">'; document.querySelector('input').checked = true`,
-  )
+  const replay = await roundTrip(page, () => {
+    document.querySelector('.Editor')!.innerHTML = '<input type="checkbox">'
+    document.querySelector('input')!.checked = true
+  })
   await expect(replay.locator('input')).toBeChecked()
 })
 
 test('password and explicitly masked content are absent from stored events', async ({ page }) => {
-  await roundTrip(
-    page,
-    `document.querySelector('.Editor').innerHTML = '<input type="password" value="password-secret"><span data-session-replay-mask>private-secret</span>'`,
-  )
+  await roundTrip(page, () => {
+    document.querySelector('.Editor')!.innerHTML =
+      '<input type="password" value="password-secret"><span data-session-replay-mask>private-secret</span>'
+  })
   const content = await page.evaluate(() => JSON.stringify(window.session))
   expect(content).not.toContain('password-secret')
   expect(content).not.toContain('private-secret')
@@ -107,10 +83,11 @@ for (const html of [
 }
 
 test('restores scrolling', async ({ page }) => {
-  const replay = await roundTrip(
-    page,
-    `document.querySelector('.Editor').innerHTML = '<div id="scroll" style="overflow:auto;height:50px"><div style="height:1000px">long text</div></div>'; document.getElementById('scroll').scrollTop = 200`,
-  )
+  const replay = await roundTrip(page, () => {
+    document.querySelector('.Editor')!.innerHTML =
+      '<div id="scroll" style="overflow:auto;height:50px"><div style="height:1000px">long text</div></div>'
+    document.querySelector<HTMLElement>('#scroll')!.scrollTop = 200
+  })
   await expect.poll(() => replay.locator('#scroll').evaluate((node) => node.scrollTop)).toBe(200)
 })
 
@@ -182,10 +159,10 @@ test('captures DOM mutations and CSSOM updates while recording', async ({ page }
   await page.evaluate(async () => {
     window.client = window.api.createClient('/dist/sessionReplayWorkerMain.js')
     await window.client.invoke('start', { local: false, upload: false })
-    window.stopRecording = window.api.observe(
+    window.stopObserving = window.api.observe(
       document,
-      (type: string, data: unknown) => window.client.invoke('record', type, data),
-      (error: unknown) => {
+      (type, data) => window.client.invoke('record', type, data),
+      (error) => {
         throw error
       },
     )
@@ -206,12 +183,12 @@ test('captures DOM mutations and CSSOM updates while recording', async ({ page }
     .poll(() =>
       page.evaluate(async () => {
         const session = await window.client.invoke('export')
-        return JSON.stringify(session.events.at(-1)!.data)
+        return JSON.stringify(session.events.at(-1)?.data)
       }),
     )
     .toContain('new content')
   await page.evaluate(async () => {
-    window.stopRecording()
+    window.stopObserving()
     const session = await window.client.invoke('export')
     window.client.dispose()
     await window.api.mountPlayer(document.body, { source: { session }, workerUrl: '/dist/sessionReplayWorkerMain.js' })
@@ -279,7 +256,7 @@ test('preserves imported reset CSS, the body root and document theme variables',
     style.textContent = '@import url("/imported.css");'
     document.head.append(style)
     document.documentElement.style.setProperty('--replay-color', 'rgb(100, 20, 30)')
-    await new Promise((resolve) => {
+    await new Promise<Event>((resolve) => {
       style.onload = resolve
     })
   })

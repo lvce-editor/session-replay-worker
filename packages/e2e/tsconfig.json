@@ -1,15 +1,11 @@
 {
   "compilerOptions": {
-    "target": "esnext",
+    "lib": ["ESNext", "DOM"],
     "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "allowJs": true,
-    "checkJs": false,
-    "isolatedModules": true,
-    "skipLibCheck": true,
     "noEmit": true,
-    "types": ["node"],
-    "rootDir": ".."
+    "strict": true,
+    "target": "ESNext",
+    "types": ["node"]
   },
   "include": ["*.ts"]
 }
