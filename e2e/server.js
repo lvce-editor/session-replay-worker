@@ -5,7 +5,9 @@ const root = resolve(import.meta.dirname, '..')
 createServer(async (req, res) => {
   try {
     const path = new URL(req.url, 'http://localhost').pathname
-    const file = resolve(root, `.${path === '/' ? '/e2e/index.html' : path}`)
+    const file = path.startsWith('/session-replay-worker/')
+      ? resolve(root, '.tmp/static', path.slice('/session-replay-worker/'.length) || 'index.html')
+      : resolve(root, `.${path === '/' ? '/e2e/index.html' : path}`)
     if (!file.startsWith(`${root}/`)) {
       res.writeHead(403).end()
       return

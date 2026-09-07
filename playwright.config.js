@@ -4,5 +4,5 @@ export default defineConfig({
   workers: 1,
   timeout: 30_000,
   use: { baseURL: 'http://127.0.0.1:4317', headless: true, trace: 'retain-on-failure' },
-  webServer: { command: 'node e2e/server.js', port: 4317, reuseExistingServer: !process.env.CI },
+  webServer: { command: 'npm run build:static && node e2e/server.js', port: 4317, reuseExistingServer: !process.env.CI },
 })
