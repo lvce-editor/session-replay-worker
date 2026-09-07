@@ -12,6 +12,7 @@ export interface VirtualNode {
 export interface Patch {
   index: number
   key: string
+  navigations?: readonly number[]
   nodes: VirtualNode[]
   type: number
   uid: number
@@ -19,7 +20,7 @@ export interface Patch {
 }
 
 const element = (tag = 'div'): ReplayNode => ({ attrs: {}, children: [], tag })
-const styleKeys = new Set(['width', 'height', 'top', 'left', 'marginTop', 'paddingLeft', 'paddingRight'])
+const styleKeys = new Set(['width', 'height', 'top', 'left', 'translate', 'marginTop', 'paddingLeft', 'paddingRight'])
 const attributes: Record<string, string> = { className: 'class', htmlFor: 'for', inputType: 'type' }
 const setStyle = (node: ReplayNode, key: string, value: unknown): void => {
   node.attrs ||= {}
@@ -73,6 +74,21 @@ const find = (node: ReplayNode, selector: string): ReplayNode | undefined => {
   }
   return undefined
 }
+
+const expandPatches = (patches: readonly Patch[]): Patch[] =>
+  patches.flatMap((value) => {
+    if (value.type !== 18) return [value]
+    const { navigations } = value
+    if (!Array.isArray(navigations) || navigations.length % 2 !== 0) throw new Error('Invalid compact replay navigation')
+    const result: Patch[] = []
+    for (let index = 0; index < navigations.length; index += 2) {
+      const type = navigations[index]
+      const childIndex = navigations[index + 1]
+      if (![7, 8, 10].includes(type) || !Number.isSafeInteger(childIndex) || childIndex < 0) throw new Error('Invalid compact replay navigation')
+      result.push({ ...value, index: childIndex, type })
+    }
+    return result
+  })
 
 export const createVisualDom = (): {
   append: (parent: ReplayNode, node: ReplayNode, index?: number) => void
@@ -153,7 +169,8 @@ export const createVisualDom = (): {
     if (stack.some((entry) => entry.remaining !== 0)) throw new Error('Incomplete replay virtual DOM')
     return roots
   }
-  const patch = (uid: number, patches: readonly Patch[]): void => {
+  const patch = (uid: number, input: readonly Patch[]): void => {
+    const patches = expandPatches(input)
     let current = views.get(uid)
     if (!current) return
     owners.set(current, uid)
@@ -195,7 +212,7 @@ export const createVisualDom = (): {
     }
     for (let index = 0; index < patches.length; index++) {
       const value = patches[index]
-      if (value.type === 7 && value.index === current.children?.length && patches[index + 1]?.type === 2) append(current, element())
+      if (value.type === 7 && value.index === current.children?.length && [2, 11].includes(patches[index + 1]?.type)) append(current, element())
       if (!mutations[value.type]) continue
       current = mutations[value.type](current, value)
       if (!current) return

@@ -4,7 +4,7 @@ const omitted = new Set(['SCRIPT', 'STYLE', 'LINK', 'META', 'BASE', 'NOSCRIPT'])
 const unsupported = new Set(['IFRAME', 'WEBVIEW', 'CANVAS', 'OBJECT', 'EMBED', 'VIDEO', 'AUDIO'])
 // The allowlist covers HTML, SVG and accessibility attributes.
 const attributes =
-  /^(class|style|id|title|role|type|checked|disabled|selected|placeholder|width|height|viewBox|d|fill|stroke|cx|cy|r|x|y|x1|x2|y1|y2|points|transform|xmlns|aria-[\w-]+)$/i
+  /^(class|style|id|title|role|type|checked|disabled|selected|placeholder|width|height|viewBox|d|fill|stroke|cx|cy|r|x|y|x1|x2|y1|y2|points|transform|xmlns|data-[\w-]+|aria-[\w-]+)$/i
 
 export const capture = (document: Document): Frame => {
   const visit = (original: Node): ReplayNode | undefined => {

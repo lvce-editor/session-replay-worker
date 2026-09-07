@@ -285,12 +285,12 @@ test('records transferred worker ports and replays virtual DOM commands without 
         'Viewlet.setDom2',
         1,
         [
-          { childCount: 1, className: 'Editor', type: 4 },
+          { childCount: 1, className: 'Editor', 'data-uid': 1, type: 4 },
           { text: 'message recorded', type: 12 },
         ],
       ],
       ['Viewlet.appendToBody', 1],
-      ['Viewlet.setCss', 1, '.Editor { color: rgb(10, 20, 30) }'],
+      ['Viewlet.setCss', 1, '.Editor[data-uid="1"] { color: rgb(10, 20, 30) }'],
     ]
     let response = receive(rendererPort)
     root.port1.postMessage({ method: 'Viewlet.sendMultiple', params: [commands] })
@@ -311,7 +311,7 @@ test('records transferred worker ports and replays virtual DOM commands without 
             'Viewlet.setTreePatches',
             1,
             [
-              { index: 0, type: 7 },
+              { navigations: [7, 0], type: 18 },
               { type: 1, value: 'committed edit' },
             ],
           ],
