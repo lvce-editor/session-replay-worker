@@ -42,7 +42,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
-      - run: npm run format:check
+      - run: npm run lint
       - name: install playwright system dependencies
         if: runner.os == 'Linux'
         working-directory: packages/e2e

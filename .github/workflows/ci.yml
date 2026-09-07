@@ -21,11 +21,16 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version-file: '.nvmrc'
-          cache: npm
+      - uses: actions/cache@v6
+        id: npm-cache
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-${{ runner.arch }}-cacheNodeModules-${{ hashFiles('package.json', 'package-lock.json', 'packages/*/package.json', '.nvmrc', '.github/workflows/*.yml') }}
       - run: npm ci
+        if: steps.npm-cache.outputs.cache-hit != 'true'
       - run: npm run build
       - run: npm test
-      - run: npm run format:check
+      - run: npm run lint
       - name: install playwright system dependencies
         if: runner.os == 'Linux'
         working-directory: packages/e2e

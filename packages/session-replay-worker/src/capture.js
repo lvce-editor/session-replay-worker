@@ -26,7 +26,7 @@ export const capture = (document) => {
       ...(typeof node.value === 'string' ? { value: node.value } : {}),
       ...(typeof node.checked === 'boolean' ? { checked: node.checked } : {}),
       ...(node.scrollTop || node.scrollLeft ? { scroll: [node.scrollLeft, node.scrollTop] } : {}),
-      children: [...node.childNodes].map(visit).filter(Boolean),
+      children: Array.from(node.childNodes, visit).filter(Boolean),
     }
   }
   const styles = []
@@ -34,13 +34,11 @@ export const capture = (document) => {
     if (!sheet || seen.has(sheet)) return ''
     seen.add(sheet)
     try {
-      return [...sheet.cssRules]
-        .map((rule) => {
-          if (rule.type !== 3) return rule.cssText
-          const imported = visitSheet(rule.styleSheet, seen)
-          return rule.media.mediaText ? `@media ${rule.media.mediaText} { ${imported} }` : imported
-        })
-        .join('\n')
+      return Array.from(sheet.cssRules, (rule) => {
+        if (rule.type !== 3) return rule.cssText
+        const imported = visitSheet(rule.styleSheet, seen)
+        return rule.media.mediaText ? `@media ${rule.media.mediaText} { ${imported} }` : imported
+      }).join('\n')
     } catch {
       return ''
     }
