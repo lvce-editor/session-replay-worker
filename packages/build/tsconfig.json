@@ -17,5 +17,6 @@
     "isolatedModules": true,
     "rootDir": "."
   },
-  "include": ["src", "test"]
+  "include": ["src", "test"],
+  "extends": "../../tsconfig.base.json"
 }

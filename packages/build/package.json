@@ -7,14 +7,14 @@
   "scripts": {
     "build:static": "node src/build-static.ts",
     "build": "node src/build.ts",
-    "typecheck": "tsc -p tsconfig.json",
     "test": "node --unhandled-rejections=warn --experimental-vm-modules ../../node_modules/jest/bin/jest.js --detectOpenHandles --forceExit",
+    "typecheck": "tsc -p tsconfig.json",
     "test:watch": "node --unhandled-rejections=warn --experimental-vm-modules ../../node_modules/jest/bin/jest.js --watch"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "@jest/globals": "^30.4.1",
     "@types/node": "^24.13.3",
-    "esbuild": "^0.28.2",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
     "typescript": "^6.0.3"

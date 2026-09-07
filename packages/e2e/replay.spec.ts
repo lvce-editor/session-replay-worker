@@ -86,7 +86,7 @@ test('restores scrolling', async ({ page }) => {
   const replay = await roundTrip(page, () => {
     document.querySelector('.Editor')!.innerHTML =
       '<div id="scroll" style="overflow:auto;height:50px"><div style="height:1000px">long text</div></div>'
-    document.querySelector<HTMLElement>('#scroll')!.scrollTop = 200
+    document.querySelector('#scroll')!.scrollTop = 200
   })
   await expect.poll(() => replay.locator('#scroll').evaluate((node) => node.scrollTop)).toBe(200)
 })
@@ -183,7 +183,7 @@ test('captures DOM mutations and CSSOM updates while recording', async ({ page }
     .poll(() =>
       page.evaluate(async () => {
         const session = await window.client.invoke('export')
-        return JSON.stringify(session.events.at(-1)?.data)
+        return JSON.stringify(session.events.at(-1)!.data)
       }),
     )
     .toContain('new content')
@@ -256,7 +256,7 @@ test('preserves imported reset CSS, the body root and document theme variables',
     style.textContent = '@import url("/imported.css");'
     document.head.append(style)
     document.documentElement.style.setProperty('--replay-color', 'rgb(100, 20, 30)')
-    await new Promise<Event>((resolve) => {
+    await new Promise((resolve) => {
       style.onload = resolve
     })
   })

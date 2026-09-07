@@ -1,8 +1,9 @@
 import { expect, test } from '@jest/globals'
-import { loadContent, validateSession } from '../src/protocol.js'
-import { createRecorder } from '../src/recorder.js'
+import type { Frame } from '../src/api/types.ts'
+import { loadContent, validateSession } from '../src/protocol.ts'
+import { createRecorder } from '../src/recorder.ts'
 
-const frame = (text: string): { dom: { children: { text: string }[]; tag: string }; styles: string[]; viewport: number[] } => ({
+const frame = (text: string): Frame => ({
   dom: { children: [{ text }], tag: 'div' },
   styles: [],
   viewport: [800, 600],

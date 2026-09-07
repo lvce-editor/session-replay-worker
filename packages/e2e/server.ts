@@ -1,31 +1,55 @@
+import { build } from 'esbuild'
 import { readFile } from 'node:fs/promises'
-import { createServer } from 'node:http'
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { resolve, sep } from 'node:path'
 
 const fixtures = import.meta.dirname
 const dist = resolve(fixtures, '../../.tmp/dist/dist')
 const site = resolve(fixtures, '../../.tmp/static')
-createServer(async (req, res) => {
+const fixture = await build({
+  bundle: true,
+  entryPoints: [resolve(fixtures, 'fixture.ts')],
+  format: 'esm',
+  plugins: [
+    {
+      name: 'api-path',
+      setup(build): void {
+        build.onResolve({ filter: /api\/index\.ts$/ }, () => ({ external: true, path: '/dist/api/index.js' }))
+      },
+    },
+  ],
+  write: false,
+})
+const serve = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
   try {
-    const path = new URL(req.url ?? '/', 'http://localhost').pathname
-    const root = path.startsWith('/session-replay-worker/') ? site : path.startsWith('/dist/') ? dist : fixtures
-    const relativePath =
-      root === site
-        ? path.slice('/session-replay-worker/'.length) || 'index.html'
-        : root === dist
-          ? path.slice('/dist/'.length)
-          : path === '/'
-            ? 'index.html'
-            : path.slice(1)
+    const path = new URL(req.url || '/', 'http://localhost').pathname
+    if (path === '/fixture.js') {
+      res.setHeader('Content-Type', 'text/javascript')
+      res.end(fixture.outputFiles[0].contents)
+      return
+    }
+    let root = fixtures
+    if (path.startsWith('/session-replay-worker/')) root = site
+    else if (path.startsWith('/dist/')) root = dist
+    let relativePath = path === '/' ? 'index.html' : path.slice(1)
+    if (root === site) relativePath = path.slice('/session-replay-worker/'.length) || 'index.html'
+    else if (root === dist) relativePath = path.slice('/dist/'.length)
+
     const file = resolve(root, relativePath)
     if (!file.startsWith(`${root}${sep}`)) {
       res.writeHead(403).end()
       return
     }
     const data = await readFile(file)
-    res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html')
+    let contentType = 'text/html'
+    if (file.endsWith('.js')) contentType = 'text/javascript'
+    else if (file.endsWith('.css')) contentType = 'text/css'
+    res.setHeader('Content-Type', contentType)
     res.end(data)
   } catch {
     res.writeHead(404).end()
   }
+}
+createServer((req, res) => {
+  void serve(req, res)
 }).listen(4317, '127.0.0.1')

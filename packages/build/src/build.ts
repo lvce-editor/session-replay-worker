@@ -1,6 +1,6 @@
 import { build } from 'esbuild'
 import { execFileSync } from 'node:child_process'
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const root = join(import.meta.dirname, '../../..')
@@ -23,10 +23,7 @@ await rm(dist, { recursive: true, force: true })
 await mkdir(dist, { recursive: true })
 await build({
   entryPoints: {
-    capture: join(worker, 'src/capture.js'),
-    client: join(worker, 'src/client.js'),
-    player: join(worker, 'src/player.js'),
-    sessionReplayWorkerMain: join(worker, 'src/worker.js'),
+    sessionReplayWorkerMain: join(worker, 'src/worker.ts'),
   },
   outdir: join(dist, 'dist'),
   bundle: true,
@@ -37,15 +34,31 @@ await build({
 
 const manifest = JSON.parse(await readFile(join(worker, 'package.json'), 'utf8'))
 delete manifest.scripts
+delete manifest.jest
+delete manifest.devDependencies
 manifest.version = getVersion()
 manifest.main = 'dist/sessionReplayWorkerMain.js'
 manifest.files = ['dist']
 manifest.exports = {
-  './capture': './dist/capture.js',
-  './client': './dist/client.js',
-  './player': './dist/player.js',
+  './api': { types: './dist/api/index.d.ts', default: './dist/api/index.js' },
+  './capture': { types: './dist/api/capture.d.ts', default: './dist/api/capture.js' },
+  './client': { types: './dist/api/client.d.ts', default: './dist/api/client.js' },
+  './player': { types: './dist/api/player.d.ts', default: './dist/api/player.js' },
   './worker': './dist/sessionReplayWorkerMain.js',
 }
+execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(worker, 'tsconfig.build.json')], { stdio: 'inherit' })
+// TypeScript rewrites runtime imports but retains .ts specifiers in declarations.
+for (const name of await readdir(join(dist, 'dist/api'))) {
+  if (!name.endsWith('.d.ts')) continue
+  const file = join(dist, 'dist/api', name)
+  const declaration = await readFile(file, 'utf8')
+  await writeFile(file, declaration.replace(/\.ts(['"])/g, '.js$1'))
+}
+// Keep the existing browser asset URLs working alongside the npm subpath aliases.
+for (const name of ['capture', 'client', 'player']) {
+  await writeFile(join(dist, `dist/${name}.js`), `export * from './api/${name}.js'\n`)
+}
+
 await writeFile(join(dist, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
 await cp(join(root, 'README.md'), join(dist, 'README.md'))
 await cp(join(root, 'LICENSE'), join(dist, 'LICENSE'))

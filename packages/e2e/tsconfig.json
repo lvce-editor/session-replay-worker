@@ -7,5 +7,6 @@
     "target": "ESNext",
     "types": ["node"]
   },
-  "include": ["*.ts"]
+  "include": ["*.ts"],
+  "extends": "../../tsconfig.base.json"
 }

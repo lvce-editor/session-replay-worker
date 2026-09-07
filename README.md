@@ -32,12 +32,31 @@ Open exported JSON recordings at [the session replay player](https://lvce-editor
 
 The repository follows the npm workspace layout used by explorer-view and about-view:
 
-- `packages/session-replay-worker`: runtime source modules, package exports, and unit tests.
-- `packages/build`: bundles the worker and browser adapters into a standalone package at `.tmp/dist`, including its package manifest, README, and license.
+- `packages/session-replay-worker`: TypeScript runtime modules, renderer API, package exports, and unit tests.
+- `packages/build`: bundles the worker and compiles the browser API with declarations into a standalone package at `.tmp/dist`, including its package manifest, README, and license.
 - `packages/e2e`: Playwright configuration, browser fixtures, test server, and replay scenarios. These tests serve the built package.
 
-Run `npm ci` to install workspace dependencies, `npm run build` to create the distribution, and `npm test` to run the worker and package checks. Install Chromium with `npm exec --workspace=packages/e2e -- playwright install chromium`, then run `npm run e2e` (or `npm run e2e:headless`). The e2e server builds the distribution before starting. Formatting is shared at the root through `npm run format:check`.
+Run `npm ci` to install workspace dependencies, `npm run build` to create the distribution, and `npm test` to run the worker and package checks. Install Chromium with `npm exec --workspace=packages/e2e -- playwright install chromium`, then run `npm run e2e` (or `npm run e2e:headless`). The e2e server builds the distribution before starting. Run `npm run type-check` for strict checking of the runtime, build scripts, and tests. Node 24 runs the TypeScript build tooling directly; Jest runs the unit tests through ts-jest. Formatting is shared at the root through `npm run format:check`.
 
-The distribution retains the `@lvce-editor/session-replay-worker` name and the `./capture`, `./client`, `./player`, and `./worker` exports. Its standalone worker entry is `dist/sessionReplayWorkerMain.js`. Build versions follow `RG_VERSION`, `GIT_TAG`, or an exact Git tag, falling back to `0.0.0-dev`.
+The npm distribution exposes two main entry points:
+
+- `@lvce-editor/session-replay-worker/worker`: the standalone bundled worker at `dist/sessionReplayWorkerMain.js`.
+- `@lvce-editor/session-replay-worker/api`: the renderer-process API at `dist/api/index.js`, with TypeScript declarations. It exports `capture`, `observe`, `serializeMessage`, `createClient`, `renderFrame`, and `mountPlayer`, plus the public recording and playback types.
+
+The existing `./capture`, `./client`, and `./player` exports remain typed aliases to modules under `dist/api/`. Existing browser asset URLs (`dist/capture.js`, `dist/client.js`, `dist/player.js`) also remain available. Importing the API does not start a worker; pass the deployed worker asset URL to `createClient` or `mountPlayer`.
+
+```ts
+import { capture, createClient } from '@lvce-editor/session-replay-worker/api'
+
+// Serve the package's bundled worker at this URL.
+const client = createClient('/dist/sessionReplayWorkerMain.js')
+await client.invoke('start', { local: true, upload: false })
+await client.invoke('record', 'frame', capture(document))
+const session = await client.invoke('export')
+await client.invoke('stop')
+client.dispose()
+```
+
+Build versions follow `RG_VERSION`, `GIT_TAG`, or an exact Git tag, falling back to `0.0.0-dev`.
 
 Existing renderer and backend consumers remain pinned to the earlier flat-layout Git commit. For new local integrations, install the built `.tmp/dist` package; the monorepo root is private and is not the runtime package. Pull requests and pushes to `main` run the PR and CI workflows across Linux, macOS, and Windows. Pushing a version tag such as `v1.0.0` runs the release workflow, which validates the tagged build, publishes `.tmp/dist` to npm using the `NPM_TOKEN` repository secret, and publishes the GitHub release.
