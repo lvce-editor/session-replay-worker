@@ -1,0 +1,130 @@
+import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { resolve } from 'node:path'
+import { before, test } from 'node:test'
+import { pathToFileURL } from 'node:url'
+
+before(() => {
+  execFileSync(process.execPath, [resolve(import.meta.dirname, '../src/build.ts')])
+})
+
+void test('the built package contains runnable exports without monorepo files', async () => {
+  const dist = resolve(import.meta.dirname, '../../../.tmp/dist')
+  const manifest = JSON.parse(await readFile(resolve(dist, 'package.json'), 'utf8'))
+  assert.equal(manifest.name, '@lvce-editor/session-replay-worker')
+  assert.equal(manifest.main, 'dist/sessionReplayWorkerMain.js')
+  assert.equal(manifest.scripts, undefined)
+  assert.equal(manifest.workspaces, undefined)
+  const [packed] = JSON.parse(
+    execFileSync(process.execPath, [process.env.npm_execpath!, 'pack', '--dry-run', '--json'], { cwd: dist, encoding: 'utf8' }),
+  )
+  assert.deepEqual(packed.files.map(({ path }: { path: string }) => path).sort(), [
+    'LICENSE',
+    'README.md',
+    'dist/api/capture.d.ts',
+    'dist/api/capture.js',
+    'dist/api/client.d.ts',
+    'dist/api/client.js',
+    'dist/api/index.d.ts',
+    'dist/api/index.js',
+    'dist/api/player.d.ts',
+    'dist/api/player.js',
+    'dist/api/types.d.ts',
+    'dist/api/types.js',
+    'dist/capture.js',
+    'dist/client.js',
+    'dist/player.js',
+    'dist/sessionReplayWorkerMain.js',
+    'package.json',
+  ])
+  for (const [name, exportedFunction] of [
+    ['api', 'createClient'],
+    ['capture', 'capture'],
+    ['client', 'createClient'],
+    ['player', 'mountPlayer'],
+  ]) {
+    const module = await import(pathToFileURL(resolve(dist, manifest.exports[`./${name}`].default)).href)
+    assert.equal(typeof module[exportedFunction], 'function')
+  }
+  assert.equal(manifest.exports['./worker'], `./${manifest.main}`)
+})
+
+void test('a packed install exposes the renderer API, worker asset and TypeScript declarations', async () => {
+  const root = resolve(import.meta.dirname, '../../..')
+  const dist = resolve(root, '.tmp/dist')
+  const consumer = await mkdtemp(resolve(tmpdir(), 'session-replay-consumer-'))
+  try {
+    const [packed] = JSON.parse(execFileSync(process.execPath, [process.env.npm_execpath!, 'pack', '--json'], { cwd: dist, encoding: 'utf8' }))
+    await writeFile(resolve(consumer, 'package.json'), JSON.stringify({ private: true, type: 'module' }))
+    execFileSync(
+      process.execPath,
+      [process.env.npm_execpath!, 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', resolve(dist, packed.filename)],
+      { cwd: consumer, stdio: 'pipe' },
+    )
+    await writeFile(
+      resolve(consumer, 'consumer.mjs'),
+      `
+      import assert from 'node:assert/strict'
+      import { capture, createClient, mountPlayer } from '@lvce-editor/session-replay-worker/api'
+      import { createClient as legacyClient } from '@lvce-editor/session-replay-worker/client'
+      assert.equal(createClient, legacyClient)
+      assert.equal(typeof capture, 'function')
+      assert.equal(typeof mountPlayer, 'function')
+      assert.ok(import.meta.resolve('@lvce-editor/session-replay-worker/worker').endsWith('/dist/sessionReplayWorkerMain.js'))
+    `,
+    )
+    execFileSync(process.execPath, ['consumer.mjs'], { cwd: consumer, stdio: 'pipe' })
+    await writeFile(
+      resolve(consumer, 'consumer.mts'),
+      `
+      import { capture, createClient, mountPlayer, type Frame, type Session } from '@lvce-editor/session-replay-worker/api'
+      import { observe } from '@lvce-editor/session-replay-worker/capture'
+      import { createClient as legacyClient } from '@lvce-editor/session-replay-worker/client'
+      import { renderFrame } from '@lvce-editor/session-replay-worker/player'
+      const client = createClient(new URL('https://example.test/worker.js'))
+      const frame: Frame = capture(document)
+      const id: string = await client.invoke('start', { local: true, upload: false })
+      await client.invoke('record', 'frame', frame)
+      const session: Session = await client.invoke('export')
+      const result = await client.invoke('seek', 100)
+      renderFrame(document, result.frame)
+      observe(document, (type, data) => client.invoke('record', type, data), console.error)
+      await mountPlayer(document.body, { workerUrl: 'worker.js', source: { session } })
+      legacyClient('worker.js').dispose()
+      // @ts-expect-error unknown command
+      await client.invoke('execute')
+      // @ts-expect-error seek requires a number
+      await client.invoke('seek', '100')
+      // @ts-expect-error a frame requires visual data
+      await client.invoke('record', 'frame', {})
+      // @ts-expect-error export returns a session
+      const invalid: string = await client.invoke('export')
+    `,
+    )
+    for (const [module, moduleResolution] of [
+      ['NodeNext', 'NodeNext'],
+      ['ESNext', 'Bundler'],
+    ]) {
+      execFileSync(
+        process.execPath,
+        [
+          resolve(root, 'node_modules/typescript/bin/tsc'),
+          '--noEmit',
+          '--strict',
+          '--target',
+          'ES2022',
+          '--module',
+          module,
+          '--moduleResolution',
+          moduleResolution,
+          'consumer.mts',
+        ],
+        { cwd: consumer, stdio: 'pipe' },
+      )
+    }
+  } finally {
+    await rm(consumer, { recursive: true, force: true })
+  }
+})

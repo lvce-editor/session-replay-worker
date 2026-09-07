@@ -2,19 +2,19 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
     ".": {
-      "project": ["*.js"]
+      "project": ["*.ts"]
     },
     "packages/build": {
-      "entry": ["test/**/*.test.js"],
-      "project": ["src/**/*.js", "test/**/*.js"]
+      "entry": ["test/**/*.test.ts", "static/main.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/e2e": {
-      "entry": ["server.js"],
-      "project": ["*.js"]
+      "entry": ["server.ts", "fixture.ts"],
+      "project": ["*.ts"]
     },
     "packages/session-replay-worker": {
-      "entry": ["test/**/*.test.js"],
-      "project": ["src/**/*.js", "test/**/*.js"]
+      "entry": ["test/**/*.test.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
     }
   }
 }

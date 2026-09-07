@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "rootDir": "src/api",
+    "outDir": "../../.tmp/dist/dist/api",
+    "types": [],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/api/**/*.ts"]
+}

@@ -8,14 +8,15 @@
     "url": "https://github.com/lvce-editor/session-replay-worker.git"
   },
   "exports": {
-    "./capture": "./src/capture.js",
-    "./client": "./src/client.js",
-    "./player": "./src/player.js",
-    "./worker": "./src/worker.js"
+    "./api": "./src/api/index.ts",
+    "./capture": "./src/api/capture.ts",
+    "./client": "./src/api/client.ts",
+    "./player": "./src/api/player.ts",
+    "./worker": "./src/worker.ts"
   },
-  "main": "src/worker.js",
+  "main": "src/worker.ts",
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.ts"
   },
   "files": [
     "src"

@@ -29,6 +29,7 @@ jobs:
       - run: npm ci
         if: steps.npm-cache.outputs.cache-hit != 'true'
       - run: npm run build:static
+      - run: npm run typecheck
       - run: npm test
       - run: npm run lint
       - name: install playwright system dependencies
