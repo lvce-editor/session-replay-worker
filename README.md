@@ -26,6 +26,8 @@ Open exported JSON recordings at [the session replay player](https://lvce-editor
 
 ## Development
 
+`npm run type-check` checks TypeScript types across the workspace projects. PR, main, and release workflows run this check.
+
 `npm run lint` checks ESLint rules, Prettier formatting, and unused code and dependencies with Knip. Run `npm run format` to apply formatting.
 
 The repository follows the npm workspace layout used by explorer-view and about-view:

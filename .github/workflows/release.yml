@@ -42,6 +42,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+      - run: npm run type-check
       - run: npm run lint
       - name: install playwright system dependencies
         if: runner.os == 'Linux'
