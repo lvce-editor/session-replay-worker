@@ -118,6 +118,8 @@ export const serializeMessage = (message: unknown): unknown => {
       if (/password|token|secret|authorization|cookie/i.test(key)) return '[redacted]'
       if (typeof value === 'bigint') return String(value)
       if (typeof value !== 'object' || value === null) return value
+      // JSON.stringify binds the containing object as the replacer receiver.
+      // eslint-disable-next-line unicorn/no-this-outside-of-class
       while (ancestors.length > 0 && ancestors.at(-1) !== this) ancestors.pop()
       if (ancestors.includes(value)) return '[circular]'
       ancestors.push(value)
