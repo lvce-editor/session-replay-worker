@@ -4,6 +4,13 @@ import * as config from '@lvce-editor/eslint-config'
 export default defineConfig([
   ...config.default,
   {
+    files: ['**/*.test.ts'],
+    rules: {
+      // Recorder tests use mutable storage fixtures and fetch options.
+      '@typescript-eslint/prefer-readonly-parameter-types': 'off',
+    },
+  },
+  {
     ignores: ['**/playwright-report/**', '**/test-results/**'],
   },
   {
