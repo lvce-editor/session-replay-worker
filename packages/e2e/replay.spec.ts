@@ -264,3 +264,96 @@ test('preserves imported reset CSS, the body root and document theme variables',
   await expect(replay.locator('body > .Workspace')).toHaveCSS('height', '720px')
   await expect(replay.locator('body > .Workspace')).toHaveCSS('color', 'rgb(100, 20, 30)')
 })
+
+test('records transferred worker ports and replays virtual DOM commands without a MutationObserver', async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const client = window.api.createClient('/dist/sessionReplayWorkerMain.js')
+    const initial = window.api.capture(document)
+    initial.dom.children = []
+    await client.invoke('start', { local: true, upload: false }, initial)
+    const root = new MessageChannel()
+    const rendererPort = await client.invokeAndTransfer('proxy', root.port2)
+    const receive = (port: MessagePort): Promise<any> =>
+      new Promise((resolve) => {
+        port.onmessage = ({ data }): void => resolve(data)
+        port.start()
+      })
+    // Div=4 and Text=12 are the stable LVCE virtual DOM protocol element ids.
+    const commands = [
+      ['Viewlet.createFunctionalRoot', 'Editor', 1, true],
+      [
+        'Viewlet.setDom2',
+        1,
+        [
+          { childCount: 1, className: 'Editor', type: 4 },
+          { text: 'message recorded', type: 12 },
+        ],
+      ],
+      ['Viewlet.appendToBody', 1],
+      ['Viewlet.setCss', 1, '.Editor { color: rgb(10, 20, 30) }'],
+    ]
+    let response = receive(rendererPort)
+    root.port1.postMessage({ method: 'Viewlet.sendMultiple', params: [commands] })
+    await response
+    const child = new MessageChannel()
+    response = receive(rendererPort)
+    root.port1.postMessage({ method: 'HandleMessagePort.handleMessagePort', params: [child.port2, 'Editor'] }, [child.port2])
+    const connection = await response
+    const directPort = connection.params[0]
+    response = receive(directPort)
+    child.port1.postMessage({
+      id: 7,
+      method: 'Viewlet.queueCommands',
+      params: [
+        1,
+        [
+          [
+            'Viewlet.setTreePatches',
+            1,
+            [
+              { index: 0, type: 7 },
+              { type: 1, value: 'committed edit' },
+            ],
+          ],
+        ],
+      ],
+    })
+    await response
+    response = receive(child.port1)
+    directPort.postMessage({ id: 7, result: 81 })
+    await response
+    const before = await client.invoke('export')
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    response = receive(rendererPort)
+    root.port1.postMessage({ method: 'Viewlet.sendMultiple', params: [[['Viewlet.commitPending', 1, 81]]] })
+    await response
+    window.session = await client.invoke('export')
+    await client.invoke('stop')
+    response = receive(rendererPort)
+    root.port1.postMessage({ method: 'still-forwarding' })
+    const afterStop = await response
+    const stopped = await client.invoke('export')
+    root.port1.close()
+    rendererPort.close()
+    directPort.close()
+    child.port1.close()
+    client.dispose()
+    await window.api.mountPlayer(document.body, { source: { session: window.session }, workerUrl: '/dist/sessionReplayWorkerMain.js' })
+    return {
+      afterStop,
+      before: before.events.at(-1)!.timestamp,
+      finalCount: window.session.events.length,
+      frames: window.session.events.filter((event) => event.type === 'frame').length,
+      stoppedCount: stopped.events.length,
+    }
+  })
+  expect(result.frames).toBe(1)
+  expect(result.stoppedCount).toBe(result.finalCount)
+  expect(result.afterStop).toEqual({ method: 'still-forwarding' })
+  const slider = page.getByRole('slider')
+  await slider.fill((await slider.getAttribute('max')) || '0')
+  await expect(page.frameLocator('iframe').locator('.Editor')).toHaveText('committed edit')
+  await expect(page.frameLocator('iframe').locator('.Editor')).toHaveCSS('color', 'rgb(10, 20, 30)')
+  await slider.fill(String(Math.floor(result.before)))
+  await expect(page.frameLocator('iframe').locator('.Editor')).toHaveText('message recorded')
+})

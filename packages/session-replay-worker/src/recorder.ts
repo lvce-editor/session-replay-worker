@@ -12,7 +12,7 @@ export const createRecorder = ({
   fetch: request = globalThis.fetch,
   now = (): number => performance.now(),
   storage,
-}: RecorderDependencies): Pick<WorkerCommands, 'start' | 'record' | 'flush' | 'export' | 'status'> => {
+}: RecorderDependencies): Pick<WorkerCommands, 'start' | 'record' | 'flush' | 'status'> & { export: () => Session } => {
   let metadata: SessionMetadata
   let options: RecordingOptions
   const events: ReplayEvent[] = []

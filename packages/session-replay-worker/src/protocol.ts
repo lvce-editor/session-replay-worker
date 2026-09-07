@@ -1,4 +1,6 @@
 import type { Session, SeekResult } from './api/types.ts'
+import type { ProxyMessage } from './proxy.ts'
+import { createVisualState } from './visualState.ts'
 
 export const version = 1
 export const maxEventBytes = 750_000
@@ -33,8 +35,23 @@ export const loadContent = (value: unknown): { duration: number; seek: (timestam
   const frames = session.events.filter((event) => event.type === 'frame')
   if (frames.length === 0) throw new Error('This session has no visual frames')
   const duration = session.events.at(-1)?.timestamp || 0
+  let visual = createVisualState(frames[0].data)
+  let eventIndex = 0
+  let lastPosition = -1
   const seek = (timestamp: number): SeekResult => {
     const position = Math.max(0, Math.min(duration, timestamp || 0))
+    if (frames[0].data.commandReplay) {
+      if (position < lastPosition) {
+        visual = createVisualState(frames[0].data)
+        eventIndex = 0
+      }
+      while (eventIndex < session.events.length && session.events[eventIndex].timestamp <= position) {
+        const event = session.events[eventIndex++]
+        if (event.type === 'message') visual.accept(event.data as ProxyMessage)
+      }
+      lastPosition = position
+      return { duration, frame: structuredClone(visual.frame()), position }
+    }
     let low = 0
     let high = frames.length
     while (low < high) {
