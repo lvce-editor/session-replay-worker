@@ -1,5 +1,5 @@
 {
-  "name": "@lvce-editor/session-replay-worker",
+  "name": "@lvce-editor/session-replay-worker-monorepo",
   "version": "0.0.0-dev",
   "type": "module",
   "license": "MIT",
@@ -7,21 +7,20 @@
     "type": "git",
     "url": "https://github.com/lvce-editor/session-replay-worker.git"
   },
-  "exports": {
-    "./capture": "./src/capture.js",
-    "./client": "./src/client.js",
-    "./player": "./src/player.js",
-    "./worker": "./src/worker.js"
-  },
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "build:static": "node scripts/build-static.js",
-    "test": "node --test test/*.test.js",
-    "e2e": "playwright test",
+    "build": "node packages/build/src/build.js",
+    "build:static": "node packages/build/src/build-static.js",
+    "test": "npm test --workspaces --if-present",
+    "e2e": "npm run e2e --workspace=packages/e2e",
+    "e2e:headless": "npm run e2e:headless --workspace=packages/e2e",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "@playwright/test": "^1.58.2",
     "prettier": "^3.9.6"
   },
   "prettier": {

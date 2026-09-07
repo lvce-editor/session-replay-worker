@@ -22,7 +22,7 @@ test('opens an exported recording from the GitHub Pages subdirectory', async ({ 
     ),
   })
   await expect(page.frameLocator('iframe').locator('body')).toHaveText('Recorded editor')
-  expect(workers).toEqual(['http://127.0.0.1:4317/session-replay-worker/src/worker.js'])
+  expect(workers).toEqual(['http://127.0.0.1:4317/session-replay-worker/dist/sessionReplayWorkerMain.js'])
 })
 
 test('reports malformed JSON and allows another file to be selected', async ({ page }) => {

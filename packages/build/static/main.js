@@ -1,4 +1,4 @@
-import { mountPlayer } from './src/player.js'
+import { mountPlayer } from './dist/player.js'
 
 const input = document.querySelector('#session')
 const error = document.querySelector('#error')
@@ -11,7 +11,7 @@ input.addEventListener('change', async () => {
   error.textContent = ''
   try {
     const session = JSON.parse(await file.text())
-    await mountPlayer(player, { workerUrl: new URL('./src/worker.js', import.meta.url), source: { session } })
+    await mountPlayer(player, { workerUrl: new URL('./dist/sessionReplayWorkerMain.js', import.meta.url), source: { session } })
   } catch (cause) {
     error.textContent = `Cannot open recording: ${cause.message}`
   } finally {
