@@ -16,9 +16,38 @@
   },
   "main": "src/worker.ts",
   "scripts": {
-    "test": "node --test test/*.test.ts"
+    "test": "node --unhandled-rejections=warn --experimental-vm-modules ../../node_modules/jest/bin/jest.js --detectOpenHandles --forceExit",
+    "test:watch": "node --unhandled-rejections=warn --experimental-vm-modules ../../node_modules/jest/bin/jest.js --watch",
+    "typecheck": "tsc -p tsconfig.json"
   },
   "files": [
     "src"
-  ]
+  ],
+  "devDependencies": {
+    "@jest/globals": "^30.4.1",
+    "@types/node": "^24.13.3",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.11",
+    "typescript": "^6.0.3"
+  },
+  "jest": {
+    "injectGlobals": false,
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "useESM": true
+        }
+      ]
+    },
+    "testMatch": [
+      "**/test/**/*.test.ts"
+    ]
+  }
 }

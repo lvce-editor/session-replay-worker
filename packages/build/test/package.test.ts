@@ -1,26 +1,25 @@
-import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
-import { before, test } from 'node:test'
+import { beforeAll, expect, test } from '@jest/globals'
 import { pathToFileURL } from 'node:url'
 
-before(() => {
+beforeAll(() => {
   execFileSync(process.execPath, [resolve(import.meta.dirname, '../src/build.ts')])
 })
 
-void test('the built package contains runnable exports without monorepo files', async () => {
+test('the built package contains runnable exports without monorepo files', async () => {
   const dist = resolve(import.meta.dirname, '../../../.tmp/dist')
   const manifest = JSON.parse(await readFile(resolve(dist, 'package.json'), 'utf8'))
-  assert.equal(manifest.name, '@lvce-editor/session-replay-worker')
-  assert.equal(manifest.main, 'dist/sessionReplayWorkerMain.js')
-  assert.equal(manifest.scripts, undefined)
-  assert.equal(manifest.workspaces, undefined)
+  expect(manifest.name).toBe('@lvce-editor/session-replay-worker')
+  expect(manifest.main).toBe('dist/sessionReplayWorkerMain.js')
+  expect(manifest.scripts).toBeUndefined()
+  expect(manifest.workspaces).toBeUndefined()
   const [packed] = JSON.parse(
     execFileSync(process.execPath, [process.env.npm_execpath!, 'pack', '--dry-run', '--json'], { cwd: dist, encoding: 'utf8' }),
   )
-  assert.deepEqual(packed.files.map(({ path }: { path: string }) => path).sort(), [
+  expect(packed.files.map(({ path }: { path: string }) => path).sort()).toEqual([
     'LICENSE',
     'README.md',
     'dist/api/capture.d.ts',
@@ -46,12 +45,12 @@ void test('the built package contains runnable exports without monorepo files', 
     ['player', 'mountPlayer'],
   ]) {
     const module = await import(pathToFileURL(resolve(dist, manifest.exports[`./${name}`].default)).href)
-    assert.equal(typeof module[exportedFunction], 'function')
+    expect(typeof module[exportedFunction]).toBe('function')
   }
-  assert.equal(manifest.exports['./worker'], `./${manifest.main}`)
+  expect(manifest.exports['./worker']).toBe(`./${manifest.main}`)
 })
 
-void test('a packed install exposes the renderer API, worker asset and TypeScript declarations', async () => {
+test('a packed install exposes the renderer API, worker asset and TypeScript declarations', async () => {
   const root = resolve(import.meta.dirname, '../../..')
   const dist = resolve(root, '.tmp/dist')
   const consumer = await mkdtemp(resolve(tmpdir(), 'session-replay-consumer-'))
@@ -127,4 +126,4 @@ void test('a packed install exposes the renderer API, worker asset and TypeScrip
   } finally {
     await rm(consumer, { recursive: true, force: true })
   }
-})
+}, 30_000)

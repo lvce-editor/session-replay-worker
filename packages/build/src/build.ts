@@ -7,7 +7,7 @@ const root = join(import.meta.dirname, '../../..')
 const dist = join(root, '.tmp/dist')
 const worker = join(root, 'packages/session-replay-worker')
 
-const getVersion = () => {
+const getVersion = (): string => {
   const configured = process.env.RG_VERSION || process.env.GIT_TAG
   if (configured) return configured.replace(/^v/, '')
   try {
@@ -34,6 +34,8 @@ await build({
 
 const manifest = JSON.parse(await readFile(join(worker, 'package.json'), 'utf8'))
 delete manifest.scripts
+delete manifest.jest
+delete manifest.devDependencies
 manifest.version = getVersion()
 manifest.main = 'dist/sessionReplayWorkerMain.js'
 manifest.files = ['dist']

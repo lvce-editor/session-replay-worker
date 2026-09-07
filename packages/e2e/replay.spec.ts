@@ -159,7 +159,7 @@ test('captures DOM mutations and CSSOM updates while recording', async ({ page }
   await page.evaluate(async () => {
     window.client = window.api.createClient('/dist/sessionReplayWorkerMain.js')
     await window.client.invoke('start', { local: false, upload: false })
-    window.stop = window.api.observe(
+    window.stopObserving = window.api.observe(
       document,
       (type, data) => window.client.invoke('record', type, data),
       (error) => {
@@ -188,7 +188,7 @@ test('captures DOM mutations and CSSOM updates while recording', async ({ page }
     )
     .toContain('new content')
   await page.evaluate(async () => {
-    window.stop()
+    window.stopObserving()
     const session = await window.client.invoke('export')
     window.client.dispose()
     await window.api.mountPlayer(document.body, { source: { session }, workerUrl: '/dist/sessionReplayWorkerMain.js' })

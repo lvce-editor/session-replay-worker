@@ -34,7 +34,7 @@ The repository follows the npm workspace layout used by explorer-view and about-
 - `packages/build`: bundles the worker and compiles the browser API with declarations into a standalone package at `.tmp/dist`, including its package manifest, README, and license.
 - `packages/e2e`: Playwright configuration, browser fixtures, test server, and replay scenarios. These tests serve the built package.
 
-Run `npm ci` to install workspace dependencies, `npm run build` to create the distribution, and `npm test` to run the worker and package checks. Install Chromium with `npm exec --workspace=packages/e2e -- playwright install chromium`, then run `npm run e2e` (or `npm run e2e:headless`). The e2e server builds the distribution before starting. Run `npm run typecheck` for strict checking of the runtime, build scripts, and tests. Node 24 runs the TypeScript tooling and unit tests directly. Formatting is shared at the root through `npm run format:check`.
+Run `npm ci` to install workspace dependencies, `npm run build` to create the distribution, and `npm test` to run the worker and package checks. Install Chromium with `npm exec --workspace=packages/e2e -- playwright install chromium`, then run `npm run e2e` (or `npm run e2e:headless`). The e2e server builds the distribution before starting. Run `npm run typecheck` for strict checking of the runtime, build scripts, and tests. Node 24 runs the TypeScript build tooling directly; Jest runs the unit tests through ts-jest. Formatting is shared at the root through `npm run format:check`.
 
 The npm distribution exposes two main entry points:
 
