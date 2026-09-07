@@ -110,14 +110,17 @@ export const observe = (
 }
 
 export const serializeMessage = (message: unknown): unknown => {
-  const seen = new WeakSet()
+  const ancestors: object[] = []
+  let count = 0
   return JSON.parse(
-    JSON.stringify(message, (key, value) => {
+    JSON.stringify(message, function (key, value) {
+      if (++count > 200_000) throw new Error('Session replay message is too complex')
       if (/password|token|secret|authorization|cookie/i.test(key)) return '[redacted]'
       if (typeof value === 'bigint') return String(value)
       if (typeof value !== 'object' || value === null) return value
-      if (seen.has(value)) return '[circular]'
-      seen.add(value)
+      while (ancestors.length > 0 && ancestors.at(-1) !== this) ancestors.pop()
+      if (ancestors.includes(value)) return '[circular]'
+      ancestors.push(value)
       if (value instanceof Error) return { message: value.message, name: value.name, stack: value.stack }
       if (value instanceof ArrayBuffer || ArrayBuffer.isView(value)) return { byteLength: value.byteLength, type: value.constructor.name }
       if (value.constructor?.name === 'MessagePort') return { type: 'MessagePort' }

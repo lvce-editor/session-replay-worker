@@ -10,6 +10,7 @@ export interface ReplayNode {
 }
 
 export interface Frame {
+  commandReplay?: boolean
   documentElement?: { className: string; style: string }
   dom: ReplayNode
   styles: string[]
@@ -56,12 +57,13 @@ export type ReplaySource = { localId: string } | { url: string } | { session: un
 export type RecordParams = [type: 'frame', data: Frame] | [type: 'message', data: unknown]
 
 export interface WorkerCommands {
-  export(): Session
+  export(): Session | Promise<Session>
   flush(): Promise<void>
   load(source: ReplaySource): Promise<SeekResult>
+  proxy(port: MessagePort): MessagePort
   record(...params: RecordParams): Promise<void>
   seek(timestamp: number): SeekResult
-  start(options: RecordingOptions): Promise<string>
+  start(options: RecordingOptions, initialFrame?: Frame): Promise<string>
   status(): RecordingStatus
   stop(): Promise<void>
 }
@@ -69,6 +71,10 @@ export interface WorkerCommands {
 export interface ReplayClient {
   dispose(): void
   invoke<K extends keyof WorkerCommands>(method: K, ...params: Parameters<WorkerCommands[K]>): Promise<Awaited<ReturnType<WorkerCommands[K]>>>
+  invokeAndTransfer<K extends keyof WorkerCommands>(
+    method: K,
+    ...params: Parameters<WorkerCommands[K]>
+  ): Promise<Awaited<ReturnType<WorkerCommands[K]>>>
 }
 
 export interface PlayerOptions {

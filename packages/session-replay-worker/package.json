@@ -49,5 +49,8 @@
     "testMatch": [
       "**/test/**/*.test.ts"
     ]
+  },
+  "dependencies": {
+    "@lvce-editor/constants": "^5.30.0"
   }
 }
