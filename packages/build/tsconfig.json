@@ -13,7 +13,9 @@
     "verbatimModuleSyntax": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
-    "noUnusedLocals": true
+    "noUnusedLocals": true,
+    "isolatedModules": true,
+    "rootDir": "."
   },
   "include": ["src", "test"]
 }

@@ -13,8 +13,8 @@
       "project": ["*.ts"]
     },
     "packages/session-replay-worker": {
-      "entry": ["test/**/*.test.js"],
-      "project": ["src/**/*.js", "test/**/*.js"]
+      "entry": ["test/**/*.test.ts"],
+      "project": ["src/**/*.js", "test/**/*.ts"]
     }
   }
 }
