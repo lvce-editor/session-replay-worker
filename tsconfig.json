@@ -1,0 +1,15 @@
+{
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "./packages/session-replay-worker"
+    },
+    {
+      "path": "./packages/build"
+    },
+    {
+      "path": "./packages/e2e"
+    }
+  ]
+}

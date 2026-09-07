@@ -20,13 +20,14 @@
     "format:check": "prettier --check .",
     "lint": "eslint . && prettier --check . && knip --no-config-hints",
     "test": "npm test --workspaces --if-present",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "type-check": "tsc -b"
   },
   "devDependencies": {
     "@lvce-editor/eslint-config": "^18.9.0",
     "eslint": "^10.10.0",
     "knip": "^6.34.0",
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.6",
+    "typescript": "^6.0.3"
   },
   "prettier": {
     "semi": false,
