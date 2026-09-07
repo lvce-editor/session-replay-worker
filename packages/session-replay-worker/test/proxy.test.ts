@@ -140,3 +140,29 @@ test('preserves repeated virtual DOM objects in recorded command data', () => {
   const text = { text: 'repeated', type: 12 }
   expect(serialize([text, text])).toEqual([text, text])
 })
+
+test('masked and ignored virtual nodes do not retain attribute or textContent secrets', () => {
+  const serialize = createMessageSerializer()
+  for (const marker of ['data-session-replay-mask', 'data-session-replay-ignore']) {
+    const nodes = [
+      { childCount: 1, [marker]: 'private-marker', textContent: 'private-content', title: 'private-title', type: 4 },
+      { inputType: 'text', name: 'private-name', placeholder: 'private-placeholder', type: 6, value: 'private-value' },
+    ]
+    const result = serialize({ method: 'Viewlet.setDom2', params: [1, nodes] })
+    expect(JSON.stringify(result)).not.toContain('private-')
+    expect(result).toEqual({
+      method: 'Viewlet.setDom2',
+      params: [
+        1,
+        [
+          { childCount: 1, [marker]: '', textContent: '[redacted]', type: 4 },
+          { type: 6, value: '[redacted]' },
+        ],
+      ],
+    })
+    expect(nodes[0].title).toBe('private-title')
+    expect(
+      JSON.stringify(serialize({ method: 'Viewlet.setTreePatches', params: [1, [{ key: 'title', type: 3, value: 'private-update' }]] })),
+    ).not.toContain('private-')
+  }
+})
