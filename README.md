@@ -20,4 +20,6 @@ The in-memory session limit is 64 MiB, with 750 KB per event and batches below t
 
 ## Development
 
+`npm run lint` checks ESLint rules, Prettier formatting, and unused code and dependencies with Knip. Run `npm run format` to apply formatting.
+
 `npm ci`, `npm test`, and `npm run e2e` run unit tests and Chromium browser tests. Install Chromium with `npx playwright install chromium` first. The package contains build-free ES modules and can be installed from an immutable Git commit until npm publishing is configured. Consumers bundle `src/worker.js` as a separate module worker alongside their renderer bundle; the backend copies the source modules to its static player assets.

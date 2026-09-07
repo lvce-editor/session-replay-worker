@@ -14,13 +14,17 @@
     "./worker": "./src/worker.js"
   },
   "scripts": {
-    "test": "node --test test/*.test.js",
     "e2e": "playwright test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "lint": "eslint . && prettier --check . && knip --no-config-hints",
+    "test": "node --test test/*.test.js"
   },
   "devDependencies": {
+    "@lvce-editor/eslint-config": "^18.9.0",
     "@playwright/test": "^1.58.2",
+    "eslint": "^10.10.0",
+    "knip": "^6.34.0",
     "prettier": "^3.9.6"
   },
   "prettier": {
