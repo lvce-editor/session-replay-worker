@@ -1,12 +1,16 @@
 import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
-import { resolve } from 'node:path'
-const root = resolve(import.meta.dirname, '..')
+import { resolve, sep } from 'node:path'
+
+const fixtures = import.meta.dirname
+const dist = resolve(fixtures, '../../.tmp/dist/dist')
 createServer(async (req, res) => {
   try {
     const path = new URL(req.url, 'http://localhost').pathname
-    const file = resolve(root, `.${path === '/' ? '/e2e/index.html' : path}`)
-    if (!file.startsWith(`${root}/`)) {
+    const root = path.startsWith('/dist/') ? dist : fixtures
+    const relativePath = root === dist ? path.slice('/dist/'.length) : path === '/' ? 'index.html' : path.slice(1)
+    const file = resolve(root, relativePath)
+    if (!file.startsWith(`${root}${sep}`)) {
       res.writeHead(403).end()
       return
     }

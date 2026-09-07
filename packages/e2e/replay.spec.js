@@ -7,14 +7,14 @@ test.beforeEach(async ({ page }) => {
 const roundTrip = async (page, change = '') => {
   await page.evaluate(async (change) => {
     if (change) new Function(change)()
-    const client = window.api.createClient('/src/worker.js')
+    const client = window.api.createClient('/dist/sessionReplayWorkerMain.js')
     const id = await client.invoke('start', { local: true, upload: false })
     await client.invoke('record', 'frame', window.api.capture(document))
     window.session = await client.invoke('export')
     window.localId = id
     await client.invoke('stop')
     client.dispose()
-    await window.api.mountPlayer(document.body, { workerUrl: '/src/worker.js', source: { localId: id } })
+    await window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { localId: id } })
   }, change)
   return page.frameLocator('iframe')
 }
@@ -25,7 +25,7 @@ test('replays the assembled explorer and editor DOM using only the replay worker
   const replay = await roundTrip(page)
   await expect(replay.locator('.Explorer')).toContainText('hello.js')
   await expect(replay.locator('.Editor')).toContainText('const answer = 42')
-  expect(workers.every((url) => url.endsWith('/src/worker.js'))).toBe(true)
+  expect(workers.every((url) => url.endsWith('/dist/sessionReplayWorkerMain.js'))).toBe(true)
 })
 
 test('replays CSS styles', async ({ page }) => {
@@ -92,7 +92,10 @@ test('local recordings survive page reload', async ({ page }) => {
   const id = await page.evaluate(() => window.localId)
   await page.reload()
   await page.waitForFunction(() => window.api)
-  await page.evaluate(async (localId) => window.api.mountPlayer(document.body, { workerUrl: '/src/worker.js', source: { localId } }), id)
+  await page.evaluate(
+    async (localId) => window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { localId } }),
+    id,
+  )
   await expect(page.frameLocator('iframe').locator('.Editor')).toContainText('const answer')
 })
 
@@ -103,7 +106,7 @@ const timeline = async (page) =>
     document.querySelector('.Explorer').remove()
     const after = window.api.capture(document)
     await window.api.mountPlayer(document.body, {
-      workerUrl: '/src/worker.js',
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
       source: {
         session: {
           version: 1,
@@ -141,13 +144,16 @@ test('local file JSON can be replayed without its original workers', async ({ pa
   const session = await page.evaluate(() => window.session)
   await page.reload()
   await page.waitForFunction(() => window.api)
-  await page.evaluate(async (session) => window.api.mountPlayer(document.body, { workerUrl: '/src/worker.js', source: { session } }), session)
+  await page.evaluate(
+    async (session) => window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { session } }),
+    session,
+  )
   await expect(page.frameLocator('iframe').locator('.Editor')).toContainText('const answer')
 })
 
 test('captures DOM mutations and CSSOM updates while recording', async ({ page }) => {
   await page.evaluate(async () => {
-    window.client = window.api.createClient('/src/worker.js')
+    window.client = window.api.createClient('/dist/sessionReplayWorkerMain.js')
     await window.client.invoke('start', { local: false, upload: false })
     window.stop = window.api.observe(
       document,
@@ -169,7 +175,7 @@ test('captures DOM mutations and CSSOM updates while recording', async ({ page }
     window.stop()
     const session = await window.client.invoke('export')
     window.client.dispose()
-    await window.api.mountPlayer(document.body, { workerUrl: '/src/worker.js', source: { session } })
+    await window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { session } })
   })
   await page.getByRole('slider').fill(await page.getByRole('slider').getAttribute('max'))
   await expect(page.frameLocator('iframe').locator('.Editor')).toHaveCSS('color', 'rgb(255, 0, 0)')
@@ -206,7 +212,7 @@ test('malicious imported commands, event handlers and resource URLs never execut
         },
       ],
     }
-    await window.api.mountPlayer(document.body, { workerUrl: '/src/worker.js', source: { session } })
+    await window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { session } })
   })
   await expect(page.frameLocator('iframe').locator('script, iframe, [onclick], [onerror], [href], [src]')).toHaveCount(0)
   expect(await page.evaluate(() => window.hacked)).toBeUndefined()
@@ -214,14 +220,16 @@ test('malicious imported commands, event handlers and resource URLs never execut
 })
 
 test('missing local replay displays a useful error', async ({ page }) => {
-  await page.evaluate(async () => window.api.mountPlayer(document.body, { workerUrl: '/src/worker.js', source: { localId: 'missing' } }))
+  await page.evaluate(async () =>
+    window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { localId: 'missing' } }),
+  )
   await expect(page.locator('output')).toContainText('not found')
   await expect(page.getByRole('slider')).toBeDisabled()
 })
 
 test('invalid replay version is rejected', async ({ page }) => {
   await page.evaluate(async () =>
-    window.api.mountPlayer(document.body, { workerUrl: '/src/worker.js', source: { session: { version: 99, events: [] } } }),
+    window.api.mountPlayer(document.body, { workerUrl: '/dist/sessionReplayWorkerMain.js', source: { session: { version: 99, events: [] } } }),
   )
   await expect(page.locator('output')).toContainText('Unsupported')
 })
@@ -229,7 +237,7 @@ test('invalid replay version is rejected', async ({ page }) => {
 test('preserves imported reset CSS, the body root and document theme variables', async ({ page }) => {
   await page.evaluate(async () => {
     const style = document.createElement('style')
-    style.textContent = '@import url("/e2e/imported.css");'
+    style.textContent = '@import url("/imported.css");'
     document.head.append(style)
     document.documentElement.style.setProperty('--replay-color', 'rgb(100, 20, 30)')
     await new Promise((resolve) => {
