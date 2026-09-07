@@ -11,7 +11,7 @@ createServer(async (req, res) => {
       return
     }
     const data = await readFile(file)
-    res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : 'text/html')
+    res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html')
     res.end(data)
   } catch {
     res.writeHead(404).end()
