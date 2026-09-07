@@ -1,4 +1,4 @@
-import './build.js'
+import './build.ts'
 import { cp, mkdir, rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
