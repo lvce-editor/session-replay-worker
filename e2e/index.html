@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      .Editor {
+        color: rgb(0, 128, 0);
+      }
+      .Workspace {
+        display: flex;
+      }
+      .Explorer {
+        width: 200px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="Workspace">
+      <aside class="Explorer">
+        Files
+        <ul>
+          <li>hello.js</li>
+        </ul>
+      </aside>
+      <main class="Editor"><pre>const answer = 42</pre></main>
+    </div>
+    <script type="module">
+      import { capture, observe } from '/src/capture.js'
+      import { createClient } from '/src/client.js'
+      import { mountPlayer } from '/src/player.js'
+      window.api = { capture, observe, createClient, mountPlayer }
+    </script>
+  </body>
+</html>

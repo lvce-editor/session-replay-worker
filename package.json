@@ -1,0 +1,31 @@
+{
+  "name": "@lvce-editor/session-replay-worker",
+  "version": "0.0.0-dev",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lvce-editor/session-replay-worker.git"
+  },
+  "exports": {
+    "./capture": "./src/capture.js",
+    "./client": "./src/client.js",
+    "./player": "./src/player.js",
+    "./worker": "./src/worker.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "prettier": "^3.9.6"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "printWidth": 150
+  }
+}
