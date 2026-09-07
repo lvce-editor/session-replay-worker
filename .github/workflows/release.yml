@@ -1,0 +1,64 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          draft: true
+
+  build-release:
+    needs: create-release
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        os: [windows-2025, macos-15, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      RG_VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npm run lint
+      - name: install playwright system dependencies
+        if: runner.os == 'Linux'
+        working-directory: packages/e2e
+        run: npx playwright install-deps chromium
+      - name: install playwright dependencies
+        working-directory: packages/e2e
+        run: npx playwright install chromium
+      - run: npm run e2e:headless
+      - name: Publish npm package
+        if: matrix.os == 'ubuntu-24.04'
+        working-directory: .tmp/dist
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish GitHub release
+        if: matrix.os == 'ubuntu-24.04'
+        run: gh release edit "$RG_VERSION" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
