@@ -1,5 +1,5 @@
-import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
 import { resolve, sep } from 'node:path'
 
 const fixtures = import.meta.dirname
@@ -7,7 +7,7 @@ const dist = resolve(fixtures, '../../.tmp/dist/dist')
 const site = resolve(fixtures, '../../.tmp/static')
 createServer(async (req, res) => {
   try {
-    const path = new URL(req.url, 'http://localhost').pathname
+    const path = new URL(req.url ?? '/', 'http://localhost').pathname
     const root = path.startsWith('/session-replay-worker/') ? site : path.startsWith('/dist/') ? dist : fixtures
     const relativePath =
       root === site
