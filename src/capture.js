@@ -30,14 +30,28 @@ export const capture = (document) => {
     }
   }
   const styles = []
-  for (const sheet of [...document.styleSheets, ...document.adoptedStyleSheets]) {
+  const visitSheet = (sheet, seen = new Set()) => {
+    if (!sheet || seen.has(sheet)) return ''
+    seen.add(sheet)
     try {
-      styles.push([...sheet.cssRules].map((rule) => rule.cssText).join('\n'))
+      return [...sheet.cssRules]
+        .map((rule) => {
+          if (rule.type !== 3) return rule.cssText
+          const imported = visitSheet(rule.styleSheet, seen)
+          return rule.media.mediaText ? `@media ${rule.media.mediaText} { ${imported} }` : imported
+        })
+        .join('\n')
     } catch {
-      /* Cross-origin stylesheets cannot be read. */
+      return ''
     }
   }
-  return { dom: visit(document.body), styles, viewport: [document.defaultView.innerWidth, document.defaultView.innerHeight] }
+  for (const sheet of [...document.styleSheets, ...document.adoptedStyleSheets]) styles.push(visitSheet(sheet))
+  return {
+    dom: visit(document.body),
+    styles,
+    documentElement: { className: document.documentElement.className, style: document.documentElement.style.cssText },
+    viewport: [document.defaultView.innerWidth, document.defaultView.innerHeight],
+  }
 }
 
 export const observe = (document, record, onError) => {

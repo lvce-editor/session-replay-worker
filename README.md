@@ -4,7 +4,7 @@ Opt-in visual session recording and playback for LVCE Editor. No application com
 
 ## Enable recording
 
-Set `sessionReplay.enabled` to `true` to save locally in IndexedDB. Set `sessionReplay.uploadEnabled` to `true` to stream to the backend. Both default to `false` and operate independently. Reload the editor after changing them. Recordings contain visible source code, file names, and diagnostic messages; enable recording only for sessions you intend to share. Password fields, explicitly masked DOM (`data-session-replay-mask`) and named credential fields in messages are redacted. This is not a guarantee that arbitrary application messages contain no secrets.
+Set `sessionReplay.enabled` to `true` to save locally in IndexedDB. Set `sessionReplay.uploadEnabled` to `true` to stream to the backend. Both default to `false` and operate independently. Changes apply immediately and start a new recording segment. Recordings contain visible source code, file names, and diagnostic messages; enable recording only for sessions you intend to share. Password fields, explicitly masked DOM (`data-session-replay-mask`) and named credential fields in messages are redacted. This is not a guarantee that arbitrary application messages contain no secrets.
 
 Use **SessionReplay: Download Session** to export a versioned JSON file. **SessionReplay: Replay Current Session** opens a new tab from local storage; **SessionReplay: Open Session** opens a file chooser in a separate replay tab. Local recordings are scoped to the editor origin/profile. Administrators can browse `/session-replay` on the backend and open recordings in new tabs.
 

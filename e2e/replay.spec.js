@@ -225,3 +225,18 @@ test('invalid replay version is rejected', async ({ page }) => {
   )
   await expect(page.locator('output')).toContainText('Unsupported')
 })
+
+test('preserves imported reset CSS, the body root and document theme variables', async ({ page }) => {
+  await page.evaluate(async () => {
+    const style = document.createElement('style')
+    style.textContent = '@import url("/e2e/imported.css");'
+    document.head.append(style)
+    document.documentElement.style.setProperty('--replay-color', 'rgb(100, 20, 30)')
+    await new Promise((resolve) => {
+      style.onload = resolve
+    })
+  })
+  const replay = await roundTrip(page)
+  await expect(replay.locator('body > .Workspace')).toHaveCSS('height', '720px')
+  await expect(replay.locator('body > .Workspace')).toHaveCSS('color', 'rgb(100, 20, 30)')
+})

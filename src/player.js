@@ -15,7 +15,7 @@ export const renderFrame = (document, frame) => {
     if (++count > 100_000 || depth > 150 || !value || typeof value !== 'object') throw new Error('Invalid replay DOM')
     if (typeof value.text === 'string') return document.createTextNode(value.text)
     const tag = tags.has(value.tag) ? value.tag : 'div'
-    const node = value.svg ? document.createElementNS('http://www.w3.org/2000/svg', tag) : document.createElement(tag === 'body' ? 'div' : tag)
+    const node = value.svg ? document.createElementNS('http://www.w3.org/2000/svg', tag) : document.createElement(tag)
     for (const [key, val] of Object.entries(value.attrs || {})) {
       if (attributes.test(key) && typeof val === 'string') node.setAttribute(key, val)
       if (key === 'src' && tag === 'img' && typeof val === 'string' && /^data:image\/(png|jpeg|gif|webp);base64,/.test(val))
@@ -32,7 +32,10 @@ export const renderFrame = (document, frame) => {
   style.textContent = (frame.styles || []).filter((value) => typeof value === 'string').join('\n')
   document.head.querySelectorAll('style').forEach((node) => node.remove())
   document.head.append(style)
-  document.body.replaceChildren(root)
+  document.documentElement.className = typeof frame.documentElement?.className === 'string' ? frame.documentElement.className : ''
+  document.documentElement.style.cssText = typeof frame.documentElement?.style === 'string' ? frame.documentElement.style : ''
+  if (root.nodeName === 'BODY') document.body.replaceWith(root)
+  else document.body.replaceChildren(root)
   for (const [node, [x, y]] of scrolls) node.scrollTo(x, y)
 }
 
