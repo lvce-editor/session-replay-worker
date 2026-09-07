@@ -34,3 +34,14 @@ jobs:
         working-directory: packages/e2e
         run: npx playwright install chromium
       - run: npm run e2e:headless
+
+  test:
+    needs: pr
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check all platforms passed
+        env:
+          RESULT: ${{ needs.pr.result }}
+        run: test "$RESULT" = success
