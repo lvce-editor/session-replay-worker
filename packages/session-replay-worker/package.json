@@ -1,0 +1,23 @@
+{
+  "name": "@lvce-editor/session-replay-worker",
+  "version": "0.0.0-dev",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lvce-editor/session-replay-worker.git"
+  },
+  "exports": {
+    "./capture": "./src/capture.js",
+    "./client": "./src/client.js",
+    "./player": "./src/player.js",
+    "./worker": "./src/worker.js"
+  },
+  "main": "src/worker.js",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "files": [
+    "src"
+  ]
+}
