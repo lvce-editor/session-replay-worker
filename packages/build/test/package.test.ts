@@ -40,6 +40,8 @@ test('the built package contains runnable exports without monorepo files', async
     'dist/api/types.js',
     'dist/capture.js',
     'dist/client.js',
+    'dist/parts/ActivityChart/ActivityChart.d.ts',
+    'dist/parts/ActivityChart/ActivityChart.js',
     'dist/parts/Api/Api.d.ts',
     'dist/parts/Api/Api.js',
     'dist/parts/AssetUrls/AssetUrls.d.ts',

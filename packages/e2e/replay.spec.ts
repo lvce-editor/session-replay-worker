@@ -417,7 +417,7 @@ test('activity chart shows quiet gaps and peaks, and clicking it pauses and seek
             { data: after, sequence: 3, timestamp: 8000, type: 'frame' },
             { data: {}, sequence: 4, timestamp: 8050, type: 'message' },
             { data: {}, sequence: 5, timestamp: 8100, type: 'message' },
-            { data: {}, sequence: 6, timestamp: 10000, type: 'message' },
+            { data: {}, sequence: 6, timestamp: 10_000, type: 'message' },
           ],
           version: 1,
         },
