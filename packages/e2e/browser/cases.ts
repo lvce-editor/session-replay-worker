@@ -253,11 +253,11 @@ export const cases: { name: string; run: () => Promise<void> }[] = [
     run: async (): Promise<void> => {
       const style = document.createElement('style')
       style.textContent = '@import url("./imported.css");'
-      const loaded = new Promise<void>((resolve) => {
-        style.onload = (): void => resolve()
-      })
       document.head.append(style)
-      await loaded
+      await eventually(() => {
+        const imported = style.sheet?.cssRules[0] as CSSImportRule | undefined
+        return Boolean(imported?.styleSheet?.cssRules.length)
+      })
       document.documentElement.style.setProperty('--replay-color', 'rgb(100, 20, 30)')
       const height = `${window.innerHeight}px`
       await roundTrip(() => {
