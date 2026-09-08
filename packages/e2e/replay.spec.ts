@@ -354,6 +354,8 @@ test('an explicit preview option overrides the saved setting and player disposal
 })
 
 for (const playing of [false, true]) {
+  const buttonName = playing ? 'Pause' : 'Play'
+  const advance = playing ? 50 : 0
   for (const control of ['slider click', 'slider drag', 'activity chart']) {
     test(`${control} preserves ${playing ? 'playing' : 'paused'} playback when seeking forward and backward`, async ({ page }) => {
       await timeline(page)
@@ -374,18 +376,18 @@ for (const playing of [false, true]) {
           await target.click({ position: { x: bounds.width * fraction, y: bounds.height / 2 } })
         }
         await expect(page.locator('.SessionReplaySurface .Editor')).toContainText(fraction > 0.5 ? 'edited after typing' : 'const answer')
-        await expect(page.getByRole('button', { exact: true, name: playing ? 'Pause' : 'Play' })).toBeVisible()
+        await expect(page.getByRole('button', { exact: true, name: buttonName })).toBeVisible()
         const position = Number(await slider.inputValue())
         expect(position).toBeGreaterThan(1500 * fraction - 30)
         expect(position).toBeLessThan(1500 * fraction + 30)
         await page.clock.runFor(50)
-        await expect(slider).toHaveValue(String(position + (playing ? 50 : 0)))
+        await expect(slider).toHaveValue(String(position + advance))
       }
       if (control === 'slider drag') await page.mouse.up()
       const position = Number(await slider.inputValue())
       await page.clock.runFor(50)
-      await expect(slider).toHaveValue(String(position + (playing ? 50 : 0)))
-      await expect(page.getByRole('button', { exact: true, name: playing ? 'Pause' : 'Play' })).toBeVisible()
+      await expect(slider).toHaveValue(String(position + advance))
+      await expect(page.getByRole('button', { exact: true, name: buttonName })).toBeVisible()
     })
   }
 }
