@@ -6,8 +6,8 @@ export const createTimelinePreview = (
 ): { render: (preview: ViewRender['preview'], enabled: boolean) => void; dispose: () => void } => {
   const document = container.ownerDocument
   const view = document.defaultView!
-  const popup = container.querySelector<HTMLElement>('.SessionReplayPreview')!
-  const image = container.querySelector<HTMLElement>('.SessionReplayPreviewImage')!
+  const popup = container.querySelector<HTMLElement>(':scope > .SessionReplay > .SessionReplayPreview')!
+  const image = popup.querySelector<HTMLElement>('.SessionReplayPreviewImage')!
   let frame: HTMLIFrameElement | undefined
   const removeFrame = (): void => {
     if (frame?.contentDocument) disposeFrame(frame.contentDocument)

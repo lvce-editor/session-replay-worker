@@ -609,3 +609,21 @@ test('player receives its controls and sanitized replay frame as virtual DOM fro
   await expect(page.locator('.SessionReplaySurface .Editor')).toHaveText('edited after typing')
   await expect(page.getByRole('slider')).toBeFocused()
 })
+
+test('preview controls remain separate from recorded input controls', async ({ page }) => {
+  await page.evaluate(() => {
+    const checkbox = document.createElement('input')
+    checkbox.type = 'checkbox'
+    document.querySelector('.Editor')!.append(checkbox)
+  })
+  await timeline(page)
+  await expect(page.locator('.SessionReplaySurface input[type="checkbox"]')).toHaveCount(1)
+  await page.getByRole('checkbox', { name: 'Timeline previews' }).uncheck()
+  await page.getByRole('slider').hover()
+  await expect(page.locator('.SessionReplayPreview')).toBeHidden()
+  await expect(page.locator('iframe')).toHaveCount(0)
+  await expect(page.locator('.SessionReplaySurface input[type="checkbox"]')).not.toBeChecked()
+  await page.getByRole('checkbox', { name: 'Timeline previews' }).check()
+  await page.getByRole('slider').hover()
+  await expect(page.locator('.SessionReplayPreview')).toBeVisible()
+})

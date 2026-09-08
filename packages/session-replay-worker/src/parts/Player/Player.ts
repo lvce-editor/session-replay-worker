@@ -67,7 +67,7 @@ export const mountPlayer = async (
     if (disposed) return
     clearTimeout(timer)
     timer = undefined
-    const status = container.querySelector('output') || document.createElement('output')
+    const status = container.querySelector(':scope > .SessionReplay > .SessionReplayControls > output') || document.createElement('output')
     if (!status.parentNode) container.append(status)
     status.setAttribute('role', 'alert')
     status.setAttribute('aria-live', 'assertive')
@@ -87,7 +87,7 @@ export const mountPlayer = async (
   } catch (error) {
     report(error)
   }
-  if (!container.querySelector('.SessionReplayPosition')) {
+  if (!container.querySelector(':scope > .SessionReplay > .SessionReplayControls')) {
     client.dispose()
     return () => container.replaceChildren()
   }
@@ -96,10 +96,11 @@ export const mountPlayer = async (
   let previewBusy = false
   let previewGeneration = 0
   const surface = container.querySelector<HTMLElement>('.SessionReplaySurface')!
-  const slider = container.querySelector<HTMLInputElement>('.SessionReplayPosition')!
-  const chart = container.querySelector<SVGSVGElement>('.SessionReplayActivity')!
-  const play = container.querySelector<HTMLButtonElement>('.SessionReplayPlay')!
-  const checkbox = container.querySelector<HTMLInputElement>('[type="checkbox"]')!
+  const controls = container.querySelector<HTMLElement>(':scope > .SessionReplay > .SessionReplayControls')!
+  const slider = controls.querySelector<HTMLInputElement>('.SessionReplayPosition')!
+  const chart = controls.querySelector<SVGSVGElement>('.SessionReplayActivity')!
+  const play = controls.querySelector<HTMLButtonElement>('.SessionReplayPlay')!
+  const checkbox = controls.querySelector<HTMLInputElement>('[type="checkbox"]')!
   const seek = (event: ViewEvent): void => {
     clearTimeout(timer)
     timer = undefined
