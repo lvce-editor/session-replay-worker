@@ -30,7 +30,7 @@ export const createClient = (url: string | URL): ReplayClient => {
     if (disposed) return Promise.reject(new Error('Session replay worker is closed'))
     return new Promise<Awaited<ReturnType<WorkerCommands[K]>>>((resolve, reject) => {
       const id = nextId++
-      callbacks[id] = { reject, resolve: (value) => resolve(value as Awaited<ReturnType<WorkerCommands[K]>>) }
+      callbacks[id] = { reject, resolve: (value): void => resolve(value as Awaited<ReturnType<WorkerCommands[K]>>) }
       try {
         worker.postMessage({ id, method, params }, transfer ? getTransferrables(params) : [])
       } catch (error) {

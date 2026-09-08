@@ -179,11 +179,11 @@ test('preserves stylesheet insertion order and distinct numeric, string and prot
       message('Css.addCssStyleSheet', 20, 'updated'),
       message('Css.removeCssStyleSheet', 3),
       message('Css.addCssStyleSheet', 3, 'reinserted'),
-      message('Viewlet.patchCss', '__proto__', 0, 5, 'safe'),
+      message('Viewlet.patchCss', '__proto__', 0, 5, 'safe-'),
     ]),
   )
   expect(content.seek(500).frame.styles).toEqual(['updated', 'second', 'string', 'prototype'])
-  expect(content.seek(800).frame.styles).toEqual(['updated', 'string', 'safetype', 'reinserted'])
+  expect(content.seek(800).frame.styles).toEqual(['updated', 'string', 'safe-type', 'reinserted'])
 })
 
 test('commits transactions in arrival order even when transaction ids decrease', () => {

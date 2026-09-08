@@ -39,11 +39,13 @@ export const createVisualState = (initial: Frame): { accept: (message: ProxyMess
     const batch = batches.find((entry) => entry.transaction === transaction)
     if (!batch || batch.uid !== uid) return
     batch.committed = true
-    for (const pending of [...batches]) {
+    for (let index = 0; index < batches.length; index++) {
+      const pending = batches[index]
       if (pending.uid !== uid) continue
       if (!pending.committed) return
       execute(pending.commands)
-      batches.splice(batches.indexOf(pending), 1)
+      batches.splice(index, 1)
+      index--
     }
   }
   const appendView = (uid: number, childId: number, references?: number[]): void => {

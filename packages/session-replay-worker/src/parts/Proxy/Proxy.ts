@@ -50,6 +50,13 @@ const wrapPorts = (
   return value
 }
 
+const consumeReply = (replies: unknown[], id: unknown): boolean => {
+  const index = replies.findIndex((reply) => [reply].includes(id))
+  if (index === -1) return false
+  replies.splice(index, 1)
+  return true
+}
+
 // A raw transport bridge: RPC ids, notifications, errors and replies stay intact.
 export const createProxyRegistry = ({
   record,
@@ -78,8 +85,7 @@ export const createProxyRegistry = ({
         const opposite = direction === 'to-renderer' ? 'from-renderer' : 'to-renderer'
         const ignored = typeof data?.method === 'string' && data.method.startsWith('SessionReplay.')
         if (ignored && data.id !== undefined && !ignoredReplies[opposite].includes(data.id)) ignoredReplies[opposite].push(data.id)
-        const ignoredReply = !data?.method && ignoredReplies[direction].includes(data?.id)
-        if (ignoredReply) ignoredReplies[direction] = ignoredReplies[direction].filter((id) => ![id].includes(data?.id))
+        const ignoredReply = !data?.method && consumeReply(ignoredReplies[direction], data?.id)
         if (!ignored && !ignoredReply) {
           try {
             record({ connection, direction, label, message: data, renderer })
