@@ -20,6 +20,14 @@ Hover over the seek bar or activity chart to see a miniature frame and timestamp
 
 The preview uses the same virtual DOM renderer in a sandboxed, script-free iframe, scaled from the recorded viewport. Its document isolates recorded styles, root theme variables, and media queries from the main replay. A separate, lazily created replay cursor shares the recording in the worker; pointer requests are coalesced, stale results are ignored, and disabling previews removes their rendered document.
 
+## Replay view lifecycle
+
+The session replay worker owns each view's state, content loading, playback and seek commands, drag state, preview cursor and settings, and virtual DOM generation. `Create`, `LoadContent`, `Seek`, `TogglePlay`, `Tick`, `HandlePointer`, and `Preview` take a state and return a new state. `SessionReplayView` keeps these states by view ID and exposes `SessionReplay.create`, `SessionReplay.loadContent`, `SessionReplay.dispatch`, `SessionReplay.render`, and `SessionReplay.dispose` through the worker command map.
+
+`Render` returns the player's virtual DOM, changed replay frames, preview presentation, and the delay until the next playback tick. Recorded DOM, CSS, and asset URLs are sanitized in the worker before they cross to the renderer. The existing `mountPlayer` API is the renderer-process adapter: it applies virtual DOM, forwards events and browser clock ticks, measures elements, captures pointers, persists the preview preference, and manages the isolated preview document. Browser hover events are coalesced to bound requests; sequence numbers keep delayed requests from replacing newer state. The renderer does not own playback position, duration, play/pause decisions, or replay cursors.
+
+The legacy `load`, `seek`, and `preview` worker APIs remain available for existing consumers. View disposal releases its recording and cursors; disposing the mounted player terminates its dedicated worker and restores document styles.
+
 ## Format and rendering
 
 A version 1 session has `id`, `createdAt`, and `events`. Each event has a contiguous zero-based `sequence`, monotonic relative `timestamp` in milliseconds, `type` (`message` or `frame`), and `data`.

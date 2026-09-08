@@ -131,8 +131,7 @@ export const createDomRenderer = (root: Element): ((value: ReplayNode) => void) 
     patchAttributes(element, old?.value.attrs || {}, value.attrs!)
     const children = patchChildren(element, old?.children || [], value.children!)
     patchProperties(element, old?.value, value)
-    const [x, y] = value.scroll!
-    scrolls.push([element, x, y])
+    if (value.scroll) scrolls.push([element, ...value.scroll])
     return { children, node, reused: false, value }
   }
   return (value) => {

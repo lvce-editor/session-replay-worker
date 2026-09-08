@@ -1,10 +1,13 @@
-import type { PlayerOptions, SeekResult } from '../Types/Types.ts'
-import { createActivityChart } from '../ActivityChart/ActivityChart.ts'
+import type { PlayerOptions } from '../Types/Types.ts'
+import type { TimelinePoint, ViewEvent } from '../ViewEvent/ViewEvent.ts'
+import type { ViewRender } from '../ViewRender/ViewRender.ts'
 import { createClient } from '../Client/Client.ts'
-import { playerStyles } from '../PlayerStyles/PlayerStyles.ts'
-import { createReplayRoot, disposeFrame, renderFrame } from '../RenderFrame/RenderFrame.ts'
+import { disposeFrame, renderPreparedFrame } from '../RenderFrame/RenderFrame.ts'
+import { createDomRenderer } from '../ReplayDom/ReplayDom.ts'
 import { createTimelinePreview } from '../TimelinePreview/TimelinePreview.ts'
 export { renderFrame } from '../RenderFrame/RenderFrame.ts'
+
+const settingKey = 'sessionReplay.timelinePreviewEnabled'
 
 export const mountPlayer = async (
   container: HTMLElement,
@@ -26,148 +29,177 @@ export const mountPlayer = async (
     if (!assets.pathname.endsWith('/')) assets.pathname += '/'
   }
   const client = createClient(workerUrl)
+  const document = ownerDocument
+  const view = document.defaultView!
+  let enabled = timelinePreviewEnabled ?? true
+  if (timelinePreviewEnabled === undefined) {
+    try {
+      enabled = view.localStorage.getItem(settingKey) !== 'false'
+    } catch {
+      /* Storage may be unavailable in embedded players. */
+    }
+  }
   container.replaceChildren()
-  container.className = 'SessionReplay'
-  container.style.cssText = 'position:fixed;inset:0;margin:0;display:flex;flex-direction:column;background:#202020;color:white;z-index:2147483647'
-  const document = container.ownerDocument
-  const style = document.createElement('style')
-  style.textContent = playerStyles
-  const viewport = document.createElement('div')
-  viewport.style.cssText = 'flex:1;min-height:0;overflow:auto;position:relative'
-  const surface = createReplayRoot(document)
-  viewport.append(surface)
-  const controls = document.createElement('div')
-  controls.className = 'SessionReplayControls'
-  controls.setAttribute('role', 'group')
-  controls.setAttribute('aria-label', 'Session replay controls')
-  const play = document.createElement('button')
-  play.type = 'button'
-  play.className = 'SessionReplayPlay'
-  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-  icon.setAttribute('viewBox', '0 0 24 24')
-  icon.setAttribute('aria-hidden', 'true')
-  icon.setAttribute('focusable', 'false')
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-  icon.append(path)
-  play.append(icon)
-  const updatePlayButton = (playing: boolean): void => {
-    const label = playing ? 'Pause' : 'Play'
-    play.setAttribute('aria-label', label)
-    play.title = label
-    path.setAttribute('d', playing ? 'M6 4h4v16H6zM14 4h4v16h-4z' : 'M8 4v16l12-8z')
-  }
-  updatePlayButton(false)
-  const slider = document.createElement('input')
-  slider.type = 'range'
-  slider.min = '0'
-  slider.step = '1'
-  slider.value = '0'
-  slider.setAttribute('aria-label', 'Session replay position')
-  slider.className = 'SessionReplayPosition'
-  const status = document.createElement('output')
-  status.className = 'SessionReplayTime'
-  // Playback updates frequently; announce the position only when the slider is used.
-  status.setAttribute('aria-live', 'off')
-  const activity = createActivityChart(document)
-  controls.append(play, activity.element, slider, status)
-  container.append(style, viewport, controls)
+  const setDom = createDomRenderer(container)
+  let preview: ReturnType<typeof createTimelinePreview> | undefined
   let disposed = false
-  let playing = false
+  let sequence = 0
   let timer: ReturnType<typeof setTimeout> | undefined
-  let requestId = 0
-  let position = 0
-  let duration = 0
-  let origin = 0
-  const show = (result: SeekResult): void => {
-    ;({ duration, position } = result)
-    activity.setPosition(duration > 0 ? position / duration : 0)
-    slider.max = String(Math.ceil(duration))
-    slider.value = String(Math.round(position))
-    slider.style.setProperty('--replay-progress', `${duration > 0 ? (position / duration) * 100 : 0}%`)
-    const time = `${(position / 1000).toFixed(1)} / ${(duration / 1000).toFixed(1)} s`
-    slider.ariaValueText = time
-    status.textContent = time
-    renderFrame(surface, result.frame, assets?.href)
-  }
-  const pause = (): void => {
-    playing = false
-    clearTimeout(timer)
-    updatePlayButton(false)
-  }
-  const seek = async (time: number): Promise<void> => {
-    clearTimeout(timer)
-    const id = ++requestId
-    const result = await client.invoke('seek', time)
-    if (disposed || id !== requestId) return
-    show(result)
-    if (!playing) return
-    if (position >= duration) pause()
-    else
+  let previewsEnabled = enabled
+  const apply = (result: ViewRender): void => {
+    if (disposed) return
+    setDom(result.dom)
+    if (result.frame) renderPreparedFrame(container.querySelector<HTMLElement>('.SessionReplaySurface')!, result.frame)
+    previewsEnabled = result.previewEnabled
+    preview ||= createTimelinePreview(container)
+    preview.render(result.preview, result.previewEnabled)
+    if (result.delay === undefined) {
+      clearTimeout(timer)
+      timer = undefined
+    } else if (timer === undefined) {
       timer = setTimeout(() => {
-        void seek(performance.now() - origin).catch(report)
-      }, 50)
+        timer = undefined
+        void send({ now: performance.now(), type: 'tick' })
+      }, result.delay)
+    }
   }
   const report = (error: unknown): void => {
-    pause()
+    if (disposed) return
+    clearTimeout(timer)
+    timer = undefined
+    const status = container.querySelector(':scope > .SessionReplay > .SessionReplayControls > output') || document.createElement('output')
+    if (!status.parentNode) container.append(status)
     status.setAttribute('role', 'alert')
     status.setAttribute('aria-live', 'assertive')
     status.textContent = error instanceof Error ? error.message : String(error)
   }
-  const seekTo = (time: number): void => {
-    origin = performance.now() - time
-    void seek(time).catch(report)
+  const send = async (event: ViewEvent): Promise<void> => {
+    if (disposed) return
+    try {
+      apply(await client.invoke('SessionReplay.dispatch', 1, event, ++sequence))
+    } catch (error) {
+      report(error)
+    }
   }
-  slider.oninput = (): void => {
-    seekTo(Number(slider.value))
+  try {
+    apply(await client.invoke('SessionReplay.create', 1, enabled, assets?.href))
+    apply(await client.invoke('SessionReplay.loadContent', 1, source))
+  } catch (error) {
+    report(error)
   }
-  let dragPointerId: number | undefined
-  const seekActivity = (event: PointerEvent): void => {
-    const bounds = activity.element.getBoundingClientRect()
-    if (!bounds.width || slider.disabled) return
-    slider.focus()
-    const fraction = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
-    seekTo(fraction * duration)
+  if (!container.querySelector(':scope > .SessionReplay > .SessionReplayControls')) {
+    client.dispose()
+    return () => container.replaceChildren()
   }
-  activity.element.onpointerdown = (event): void => {
+  let previewTimer: ReturnType<typeof setTimeout> | undefined
+  let pendingPreview: TimelinePoint | undefined
+  let previewBusy = false
+  let previewGeneration = 0
+  const surface = container.querySelector<HTMLElement>('.SessionReplaySurface')!
+  const controls = container.querySelector<HTMLElement>(':scope > .SessionReplay > .SessionReplayControls')!
+  const slider = controls.querySelector<HTMLInputElement>('.SessionReplayPosition')!
+  const chart = controls.querySelector<SVGSVGElement>('.SessionReplayActivity')!
+  const play = controls.querySelector<HTMLButtonElement>('.SessionReplayPlay')!
+  const checkbox = controls.querySelector<HTMLInputElement>('[type="checkbox"]')!
+  const seek = (event: ViewEvent): void => {
+    clearTimeout(timer)
+    timer = undefined
+    void send(event)
+  }
+  play.onclick = (): void => seek({ now: performance.now(), type: 'togglePlay' })
+  slider.oninput = (): void => seek({ now: performance.now(), position: Number(slider.value), type: 'seek' })
+  const point = (event: PointerEvent): TimelinePoint => {
+    const target = event.currentTarget as Element
+    const bounds = target.getBoundingClientRect()
+    return {
+      left: bounds.left,
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      slider: target === slider,
+      top: chart.getBoundingClientRect().top,
+      width: bounds.width,
+      windowWidth: view.innerWidth,
+      x: event.clientX,
+    }
+  }
+  chart.onpointerdown = (event): void => {
     if (event.button !== 0 || !event.isPrimary || slider.disabled) return
     event.preventDefault()
-    dragPointerId = event.pointerId
-    activity.element.setPointerCapture(event.pointerId)
-    seekActivity(event)
+    chart.setPointerCapture(event.pointerId)
+    slider.focus()
+    seek({ now: performance.now(), point: point(event), type: 'pointerDown' })
   }
-  activity.element.onpointermove = (event): void => {
-    if (event.pointerId === dragPointerId) seekActivity(event)
+  chart.onpointermove = (event): void => {
+    if (chart.hasPointerCapture(event.pointerId)) seek({ now: performance.now(), point: point(event), type: 'pointerMove' })
   }
   const endDrag = (event: PointerEvent): void => {
-    if (event.pointerId !== dragPointerId) return
-    dragPointerId = undefined
-    if (activity.element.hasPointerCapture(event.pointerId)) activity.element.releasePointerCapture(event.pointerId)
+    if (chart.hasPointerCapture(event.pointerId)) chart.releasePointerCapture(event.pointerId)
+    void send({ pointerId: event.pointerId, type: 'pointerUp' })
   }
-  activity.element.onpointerup = endDrag
-  activity.element.onpointercancel = endDrag
-  activity.element.onlostpointercapture = endDrag
-  play.onclick = (): void => {
-    if (playing) {
-      pause()
-      return
+  chart.onpointerup = endDrag
+  chart.onpointercancel = endDrag
+  chart.onlostpointercapture = endDrag
+  const updatePreview = async (): Promise<void> => {
+    previewTimer = undefined
+    if (!pendingPreview || previewBusy || disposed) return
+    const event = { point: pendingPreview, type: 'preview' } as const
+    pendingPreview = undefined
+    previewBusy = true
+    const generation = previewGeneration
+    const id = ++sequence
+    try {
+      const result = await client.invoke('SessionReplay.dispatch', 1, event, id)
+      if (!disposed && generation === previewGeneration) apply(result)
+    } catch {
+      /* Preview errors must not interrupt playback. */
+    } finally {
+      previewBusy = false
+      if (pendingPreview && !disposed) previewTimer = setTimeout(() => void updatePreview(), 60)
     }
-    playing = true
-    updatePlayButton(true)
-    seekTo(position >= duration ? 0 : position)
   }
-  const preview = createTimelinePreview(container, controls, slider, activity.element, client, () => duration, assets?.href, timelinePreviewEnabled)
-  try {
-    const initial = await client.invoke('load', source)
-    activity.setActivity(initial.activity)
-    show(initial)
-  } catch (error) {
-    play.disabled = slider.disabled = true
-    report(error)
+  const hover = (event: PointerEvent): void => {
+    if (!previewsEnabled || slider.disabled || event.pointerType === 'touch') return
+    previewGeneration++
+    pendingPreview = point(event)
+    if (!previewBusy && previewTimer === undefined) previewTimer = setTimeout(() => void updatePreview(), 60)
+  }
+  const hide = (): void => {
+    previewGeneration++
+    pendingPreview = undefined
+    clearTimeout(previewTimer)
+    previewTimer = undefined
+    void send({ type: 'hidePreview' })
+  }
+  for (const target of [slider, chart]) {
+    target.addEventListener('pointermove', hover as EventListener)
+    target.addEventListener('pointerleave', hide)
+    target.addEventListener('pointercancel', hide)
+  }
+  const keydown = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape') hide()
+  }
+  view.addEventListener('resize', hide)
+  view.addEventListener('blur', hide)
+  document.addEventListener('keydown', keydown)
+  checkbox.onchange = (): void => {
+    hide()
+    const enabled = checkbox.checked
+    void send({ enabled, type: 'setPreviewEnabled' })
+    try {
+      view.localStorage.setItem(settingKey, String(enabled))
+    } catch {
+      /* The setting still works without storage. */
+    }
   }
   return () => {
     disposed = true
-    pause()
-    preview.dispose()
+    clearTimeout(timer)
+    clearTimeout(previewTimer)
+    pendingPreview = undefined
+    view.removeEventListener('resize', hide)
+    view.removeEventListener('blur', hide)
+    document.removeEventListener('keydown', keydown)
+    preview?.dispose()
     client.dispose()
     disposeFrame(surface)
     container.replaceChildren()

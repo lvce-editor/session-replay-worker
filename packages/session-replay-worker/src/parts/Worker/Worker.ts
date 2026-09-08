@@ -1,10 +1,12 @@
 import type { ReplayStorage } from '../Storage/Storage.ts'
 import type { WorkerCommands } from '../Types/Types.ts'
 import { createReplayMessageFilter } from '../FilterReplayMessage/FilterReplayMessage.ts'
+import { loadSource } from '../LoadSource/LoadSource.ts'
 import { loadContent } from '../Protocol/Protocol.ts'
 import { createProxyRegistry } from '../Proxy/Proxy.ts'
 import { createRecorder } from '../Recorder/Recorder.ts'
 import { createMessageSerializer } from '../SerializeProxyMessage/SerializeProxyMessage.ts'
+import { createSessionReplayView } from '../SessionReplayView/SessionReplayView.ts'
 import { createStorage } from '../Storage/Storage.ts'
 import { getTransferrables } from '../Transfer/Transfer.ts'
 
@@ -43,6 +45,7 @@ const proxies = createProxyRegistry({
   },
   report,
 })
+const view = createSessionReplayView(getStorage)
 const commands: WorkerCommands = {
   export: async () => {
     await writes
@@ -50,22 +53,18 @@ const commands: WorkerCommands = {
   },
   flush: () => recorder.flush(),
   async load(source) {
-    let session
-    if ('localId' in source) {
-      const localStorage = await getStorage()
-      session = await localStorage.read(source.localId)
-    } else if ('url' in source) {
-      const response = await fetch(source.url, { credentials: 'include', headers: { Accept: 'application/json' } })
-      if (!response.ok) throw new Error(`Cannot load session replay (${response.status})`)
-      session = await response.json()
-    } else ({ session } = source)
-    content = loadContent(session)
+    content = loadContent(await loadSource(source, getStorage))
     return { ...content.seek(0), activity: content.activity }
   },
   preview: (timestamp) => content.preview(timestamp),
   proxy: (port) => proxies.create(port),
   record: (...params) => recorder.record(...params),
   seek: (timestamp) => content.seek(timestamp),
+  'SessionReplay.create': view.create,
+  'SessionReplay.dispatch': view.dispatch,
+  'SessionReplay.dispose': view.dispose,
+  'SessionReplay.loadContent': view.loadContent,
+  'SessionReplay.render': view.render,
   async start(options, initialFrame) {
     if (recorder) throw new Error('Reload the window to start a new command recording')
     recorder = createRecorder({ storage: options.local ? await getStorage() : undefined })

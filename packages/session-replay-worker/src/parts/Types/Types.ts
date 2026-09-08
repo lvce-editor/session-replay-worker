@@ -1,3 +1,5 @@
+import type { ViewEvent } from '../ViewEvent/ViewEvent.ts'
+import type { ViewRender } from '../ViewRender/ViewRender.ts'
 export interface ReplayNode {
   attrs?: Record<string, string>
   checked?: boolean
@@ -59,6 +61,11 @@ export type ReplaySource = { localId: string } | { url: string } | { session: un
 export type RecordParams = [type: 'frame', data: Frame] | [type: 'message', data: unknown]
 
 export interface WorkerCommands {
+  'SessionReplay.create'(uid: number, enabled: boolean, assetBaseUrl?: string): ViewRender
+  'SessionReplay.dispatch'(uid: number, event: ViewEvent, sequence: number): ViewRender
+  'SessionReplay.dispose'(uid: number): void
+  'SessionReplay.loadContent'(uid: number, source: ReplaySource): Promise<ViewRender>
+  'SessionReplay.render'(uid: number): ViewRender
   export(): Session | Promise<Session>
   flush(): Promise<void>
   load(source: ReplaySource): Promise<SeekResult & { activity: number[] }>
