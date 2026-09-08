@@ -1,22 +1,23 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "lib": ["esnext"],
     "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "types": ["node"],
+    "lib": ["esnext"],
     "strict": true,
     "noEmit": true,
-    "skipLibCheck": true,
-    "allowImportingTsExtensions": true,
-    "erasableSyntaxOnly": true,
+    "rewriteRelativeImportExtensions": true,
     "verbatimModuleSyntax": true,
-    "forceConsistentCasingInFileNames": true,
+    "erasableSyntaxOnly": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "isolatedModules": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
-    "isolatedModules": true,
-    "rootDir": "."
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": true,
+    "rootDir": ".",
+    "composite": true
   },
-  "include": ["src", "test"],
-  "extends": "../../tsconfig.base.json"
+  "include": ["src", "test"]
 }

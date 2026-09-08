@@ -2,13 +2,21 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "isolatedModules": true,
-    "skipLibCheck": true,
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "strict": true,
     "noEmit": true,
+    "rewriteRelativeImportExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "skipLibCheck": true,
     "types": ["node"],
-    "rootDir": "."
+    "isolatedModules": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "NodeNext",
+    "rootDir": ".",
+    "composite": true
   },
-  "include": ["src", "test"],
-  "extends": "../../tsconfig.base.json"
+  "include": ["src", "test"]
 }
