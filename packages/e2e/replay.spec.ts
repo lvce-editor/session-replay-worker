@@ -128,7 +128,7 @@ test('worker captures the recording browser metadata in local storage and export
   expect(result.stored).toMatchObject(result.expected)
 })
 
-test('activity chart shows quiet gaps and peaks, and clicking it pauses and seeks', async ({ page }) => {
+test('activity chart shows quiet gaps and peaks, and clicking it keeps playback running', async ({ page }) => {
   await page.evaluate(async () => {
     const before = window.api.capture(document)
     document.querySelector('.Editor')!.textContent = 'activity near the end'
@@ -175,11 +175,13 @@ test('activity chart shows quiet gaps and peaks, and clicking it pauses and seek
   await page.getByRole('button', { exact: true, name: 'Play' }).click()
   await expect(page.getByRole('button', { exact: true, name: 'Pause' })).toBeVisible()
   await chart.click({ position: { x: bounds.width * 0.82, y: 24 } })
-  await expect(page.getByRole('button', { exact: true, name: 'Play' })).toBeVisible()
+  await expect(page.getByRole('button', { exact: true, name: 'Pause' })).toBeVisible()
   await expect(page.locator('.SessionReplaySurface').locator('.Editor')).toHaveText('activity near the end')
   expect(Number(await slider.inputValue())).toBeGreaterThanOrEqual(8100)
   expect(Number(await slider.inputValue())).toBeLessThan(8300)
   await expect(slider).toBeFocused()
+  await page.getByRole('button', { exact: true, name: 'Pause' }).click()
+  await slider.focus()
   await page.keyboard.press('Home')
   await expect(slider).toHaveValue('0')
   await expect(chart.locator('line')).toHaveAttribute('x1', '0')
@@ -350,3 +352,40 @@ test('an explicit preview option overrides the saved setting and player disposal
   await expect(page.locator('.SessionReplayPreview')).toHaveCount(0)
   await expect(page.locator('iframe')).toHaveCount(0)
 })
+
+for (const playing of [false, true]) {
+  for (const control of ['slider click', 'slider drag', 'activity chart']) {
+    test(`${control} preserves ${playing ? 'playing' : 'paused'} playback when seeking forward and backward`, async ({ page }) => {
+      await timeline(page)
+      await page.clock.install({ time: 0 })
+      await page.clock.pauseAt(1000)
+      const slider = page.getByRole('slider')
+      if (playing) await page.getByRole('button', { exact: true, name: 'Play' }).click()
+      const target = control === 'activity chart' ? page.getByRole('img', { name: 'Session replay activity' }) : slider
+      const bounds = (await target.boundingBox())!
+      if (control === 'slider drag') {
+        await page.mouse.move(bounds.x + 7, bounds.y + bounds.height / 2)
+        await page.mouse.down()
+      }
+      for (const fraction of [0.75, 0.25]) {
+        if (control === 'slider drag') {
+          await page.mouse.move(bounds.x + bounds.width * fraction, bounds.y + bounds.height / 2, { steps: 5 })
+        } else {
+          await target.click({ position: { x: bounds.width * fraction, y: bounds.height / 2 } })
+        }
+        await expect(page.locator('.SessionReplaySurface .Editor')).toContainText(fraction > 0.5 ? 'edited after typing' : 'const answer')
+        await expect(page.getByRole('button', { exact: true, name: playing ? 'Pause' : 'Play' })).toBeVisible()
+        const position = Number(await slider.inputValue())
+        expect(position).toBeGreaterThan(1500 * fraction - 30)
+        expect(position).toBeLessThan(1500 * fraction + 30)
+        await page.clock.runFor(50)
+        await expect(slider).toHaveValue(String(position + (playing ? 50 : 0)))
+      }
+      if (control === 'slider drag') await page.mouse.up()
+      const position = Number(await slider.inputValue())
+      await page.clock.runFor(50)
+      await expect(slider).toHaveValue(String(position + (playing ? 50 : 0)))
+      await expect(page.getByRole('button', { exact: true, name: playing ? 'Pause' : 'Play' })).toBeVisible()
+    })
+  }
+}

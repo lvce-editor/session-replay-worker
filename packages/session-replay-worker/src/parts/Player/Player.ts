@@ -77,6 +77,7 @@ export const mountPlayer = async (
   let requestId = 0
   let position = 0
   let duration = 0
+  let origin = 0
   const show = (result: SeekResult): void => {
     ;({ duration, position } = result)
     activity.setPosition(duration > 0 ? position / duration : 0)
@@ -94,9 +95,17 @@ export const mountPlayer = async (
     updatePlayButton(false)
   }
   const seek = async (time: number): Promise<void> => {
+    clearTimeout(timer)
     const id = ++requestId
     const result = await client.invoke('seek', time)
-    if (!disposed && id === requestId) show(result)
+    if (disposed || id !== requestId) return
+    show(result)
+    if (!playing) return
+    if (position >= duration) pause()
+    else
+      timer = setTimeout(() => {
+        void seek(performance.now() - origin).catch(report)
+      }, 50)
   }
   const report = (error: unknown): void => {
     pause()
@@ -104,17 +113,19 @@ export const mountPlayer = async (
     status.setAttribute('aria-live', 'assertive')
     status.textContent = error instanceof Error ? error.message : String(error)
   }
+  const seekTo = (time: number): void => {
+    origin = performance.now() - time
+    void seek(time).catch(report)
+  }
   slider.oninput = (): void => {
-    pause()
-    void seek(Number(slider.value)).catch(report)
+    seekTo(Number(slider.value))
   }
   activity.element.onclick = (event): void => {
     const bounds = activity.element.getBoundingClientRect()
     if (!bounds.width || slider.disabled) return
-    pause()
     slider.focus()
     const fraction = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
-    void seek(fraction * duration).catch(report)
+    seekTo(fraction * duration)
   }
   play.onclick = (): void => {
     if (playing) {
@@ -123,21 +134,7 @@ export const mountPlayer = async (
     }
     playing = true
     updatePlayButton(true)
-    const origin = performance.now() - (position >= duration ? 0 : position)
-    const tick = async (): Promise<void> => {
-      if (!playing || disposed) return
-      try {
-        await seek(performance.now() - origin)
-        if (position >= duration) pause()
-        else if (playing)
-          timer = setTimeout(() => {
-            void tick()
-          }, 50)
-      } catch (error) {
-        report(error)
-      }
-    }
-    void tick()
+    seekTo(position >= duration ? 0 : position)
   }
   const preview = createTimelinePreview(container, controls, slider, activity.element, client, () => duration, assets?.href, timelinePreviewEnabled)
   try {
