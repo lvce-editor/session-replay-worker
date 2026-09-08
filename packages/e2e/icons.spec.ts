@@ -34,7 +34,7 @@ for (const prefix of ['/icons/', '/static/0123456789abcdef/icons/', 'file:///opt
       await expect(replay.locator('.StatusBarIcon')).toHaveCSS('mask-image', 'url("http://127.0.0.1:4317/replay-assets/icons/source-control.svg")')
     }
     await expect
-      .poll(() => [...new Set(loaded)].toSorted((a, b) => a.localeCompare(b)))
+      .poll(() => loaded.filter((url, index) => loaded.indexOf(url) === index).toSorted((a, b) => a.localeCompare(b)))
       .toEqual(['/replay-assets/icons/files.svg', '/replay-assets/icons/icon.svg', '/replay-assets/icons/source-control.svg'])
   })
 }

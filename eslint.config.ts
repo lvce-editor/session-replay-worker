@@ -10,6 +10,8 @@ export default defineConfig([
       '@typescript-eslint/prefer-readonly-parameter-types': 'off',
       // Promise chains preserve the recorder's shared flush promise and worker queue.
       'unicorn/prefer-await': 'off',
+      // Prefer arrays and null-prototype objects for internal collections.
+      'unicorn/prefer-set-has': 'off',
     },
   },
   {

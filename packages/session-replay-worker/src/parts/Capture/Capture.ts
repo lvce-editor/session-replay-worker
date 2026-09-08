@@ -1,7 +1,7 @@
 import type { Frame, ReplayNode } from '../Types/Types.ts'
 
-const omitted = new Set(['SCRIPT', 'STYLE', 'LINK', 'META', 'BASE', 'NOSCRIPT'])
-const unsupported = new Set(['IFRAME', 'WEBVIEW', 'CANVAS', 'OBJECT', 'EMBED', 'VIDEO', 'AUDIO'])
+const omitted = ['SCRIPT', 'STYLE', 'LINK', 'META', 'BASE', 'NOSCRIPT']
+const unsupported = ['IFRAME', 'WEBVIEW', 'CANVAS', 'OBJECT', 'EMBED', 'VIDEO', 'AUDIO']
 // The allowlist covers HTML, SVG and accessibility attributes.
 const attributes =
   /^(class|style|id|title|role|type|checked|disabled|selected|placeholder|width|height|viewBox|d|fill|stroke|cx|cy|r|x|y|x1|x2|y1|y2|points|transform|xmlns|data-[\w-]+|aria-[\w-]+)$/i
@@ -11,10 +11,10 @@ export const capture = (document: Document): Frame => {
     if (original.nodeType === 3) return { text: original.textContent }
     if (original.nodeType !== 1) return undefined
     const node = original as Element
-    if (omitted.has(node.tagName)) return undefined
+    if (omitted.includes(node.tagName)) return undefined
     // Attributes also work on XML elements without a dataset property.
     if (node.hasAttribute('data-session-replay-ignore')) return undefined
-    if (unsupported.has(node.tagName) || node.matches('.Terminal, .TerminalView, .xterm, [data-session-replay-placeholder]')) {
+    if (unsupported.includes(node.tagName) || node.matches('.Terminal, .TerminalView, .xterm, [data-session-replay-placeholder]')) {
       const { height, width } = node.getBoundingClientRect()
       return {
         attrs: { class: 'SessionReplayPlaceholder', style: `background:#808080;color:white;width:${width}px;height:${height}px;overflow:hidden` },
@@ -39,9 +39,9 @@ export const capture = (document: Document): Frame => {
     }
   }
   const styles: string[] = []
-  const visitSheet = (sheet: CSSStyleSheet | null, seen = new Set<CSSStyleSheet>()): string => {
-    if (!sheet || seen.has(sheet)) return ''
-    seen.add(sheet)
+  const visitSheet = (sheet: CSSStyleSheet | null, seen: CSSStyleSheet[] = []): string => {
+    if (!sheet || seen.includes(sheet)) return ''
+    seen.push(sheet)
     try {
       return Array.from(sheet.cssRules, (rule) => {
         if (!('styleSheet' in rule)) return rule.cssText
