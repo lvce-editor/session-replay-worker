@@ -9,7 +9,7 @@ interface FrameRenderer {
 
 const renderers = new WeakMap<Document | HTMLElement, FrameRenderer>()
 
-export const createReplayRoot = (document: Document): HTMLElement => {
+const createReplayRoot = (document: Document): HTMLElement => {
   const surface = document.createElement('div')
   surface.className = 'SessionReplaySurface'
   surface.inert = true
