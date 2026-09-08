@@ -111,6 +111,71 @@ test('playback and seeking continue through virtual DOM updates with missing chi
   await expect(status).not.toContainText('Incomplete replay virtual DOM')
 })
 
+test('starts at the first complete editor paint and returns to it when seeking or restarting', async ({ page }) => {
+  await page.evaluate(async () => {
+    const commands = [
+      ['Css.addCssStyleSheet', 1, '.Workbench{background:rgb(32,55,71);width:800px;height:600px}'],
+      ['Viewlet.createFunctionalRoot', 'Layout', 1, true],
+      [
+        'Viewlet.setDom2',
+        1,
+        [
+          { childCount: 2, className: 'Workbench', id: 'Workbench', type: 4 },
+          { childCount: 1, className: 'Explorer', type: 4 },
+          { text: 'hello.js', type: 12 },
+          { childCount: 1, className: 'Editor', type: 4 },
+          { text: 'first complete editor paint', type: 12 },
+        ],
+      ],
+      ['Viewlet.executeCommands', [['Viewlet.appendToBody', 1]]],
+      ['Viewlet.setProperty', 1, '.Editor', 'textContent', 'edited'],
+    ]
+    await window.api.mountPlayer(document.body, {
+      source: {
+        session: {
+          events: [
+            {
+              data: { commandReplay: true, dom: { children: [], tag: 'body' }, styles: [], viewport: [800, 600] },
+              sequence: 0,
+              timestamp: 0,
+              type: 'frame',
+            },
+            ...commands.map(([method, ...params], index) => ({
+              data: { connection: 1, direction: 'to-renderer', message: { method, params }, renderer: true },
+              sequence: index + 1,
+              timestamp: [100, 200, 300, 1000, 1500][index],
+              type: 'message',
+            })),
+          ],
+          version: 1,
+        },
+      },
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
+    })
+  })
+  const surface = page.locator('.SessionReplaySurface')
+  await expect(surface.locator('.Editor')).toHaveText('first complete editor paint')
+  await expect(surface.locator('.Explorer')).toHaveText('hello.js')
+  await expect(surface.locator('#Workbench')).toHaveCSS('background-color', 'rgb(32, 55, 71)')
+  await expect(page.locator('output')).toHaveText('0.0 / 0.5 s')
+  const slider = page.getByRole('slider')
+  await slider.focus()
+  await page.keyboard.press('End')
+  await expect(surface.locator('.Editor')).toHaveText('edited')
+  await page.keyboard.press('Home')
+  await expect(surface.locator('.Editor')).toHaveText('first complete editor paint')
+  await page.keyboard.press('End')
+  await expect(slider).toHaveValue('500')
+  await page.clock.install({ time: 0 })
+  await page.clock.pauseAt(1000)
+  await page.getByRole('button', { exact: true, name: 'Play' }).click()
+  await expect(slider).toHaveValue('0')
+  await expect(surface.locator('.Editor')).toHaveText('first complete editor paint')
+  await page.clock.resume()
+  await expect(surface.locator('.Editor')).toHaveText('edited')
+  await expect(page.getByRole('button', { exact: true, name: 'Play' })).toBeVisible()
+})
+
 const timeline = async (page: Page): Promise<void> =>
   page.evaluate(async () => {
     const before = window.api.capture(document)

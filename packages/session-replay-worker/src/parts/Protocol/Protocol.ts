@@ -1,6 +1,7 @@
 import type { ProxyMessage } from '../Proxy/Proxy.ts'
 import type { Session, SeekResult } from '../Types/Types.ts'
 import { getActivity } from '../Activity/Activity.ts'
+import { getPlaybackStart } from '../GetPlaybackStart/GetPlaybackStart.ts'
 import { createVisualState } from '../VisualState/VisualState.ts'
 
 export const version = 1
@@ -35,6 +36,7 @@ const createSeek = (
   session: Session,
   frames: Extract<Session['events'][number], { type: 'frame' }>[],
   duration: number,
+  start: number,
 ): ((timestamp: number) => SeekResult) => {
   let visual = createVisualState(frames[0].data)
   let eventIndex = 0
@@ -46,7 +48,7 @@ const createSeek = (
         visual = createVisualState(frames[0].data)
         eventIndex = 0
       }
-      while (eventIndex < session.events.length && session.events[eventIndex].timestamp <= position) {
+      while (eventIndex < session.events.length && session.events[eventIndex].timestamp <= position + start) {
         const event = session.events[eventIndex++]
         if (event.type === 'message') visual.accept(event.data as ProxyMessage)
       }
@@ -57,7 +59,7 @@ const createSeek = (
     let high = frames.length
     while (low < high) {
       const middle = (low + high) >>> 1
-      if (frames[middle].timestamp <= position) low = middle + 1
+      if (frames[middle].timestamp <= position + start) low = middle + 1
       else high = middle
     }
     return { duration, frame: frames[Math.max(0, low - 1)].data, position }
@@ -71,12 +73,13 @@ export const loadContent = (
   const session = validateSession(value)
   const frames = session.events.filter((event) => event.type === 'frame')
   if (frames.length === 0) throw new Error('This session has no visual frames')
-  const duration = session.events.at(-1)?.timestamp || 0
-  const seek = createSeek(session, frames, duration)
+  const start = getPlaybackStart(session.events, frames[0].data)
+  const duration = (session.events.at(-1)?.timestamp || 0) - start
+  const seek = createSeek(session, frames, duration, start)
   let previewSeek: ReturnType<typeof createSeek> | undefined
   const preview = (timestamp: number): SeekResult => {
-    previewSeek ||= createSeek(session, frames, duration)
+    previewSeek ||= createSeek(session, frames, duration, start)
     return previewSeek(timestamp)
   }
-  return { activity: getActivity(session.events, duration), duration, preview, seek }
+  return { activity: getActivity(session.events, duration, start), duration, preview, seek }
 }
