@@ -30,6 +30,87 @@ test('replays the assembled explorer and editor DOM using only the replay worker
   expect(workers.every((url) => url.endsWith('/dist/sessionReplayWorkerMain.js'))).toBe(true)
 })
 
+test('playback and seeking continue through virtual DOM updates with missing children', async ({ page }) => {
+  await page.evaluate(async () => {
+    const messages = [
+      { method: 'Viewlet.createFunctionalRoot', params: ['Editor', 1, true] },
+      {
+        method: 'Viewlet.setDom2',
+        params: [
+          1,
+          [
+            { childCount: 1, className: 'Editor', type: 4 },
+            { text: 'before', type: 12 },
+          ],
+        ],
+      },
+      { method: 'Viewlet.appendToBody', params: [1] },
+      {
+        method: 'Viewlet.setTreePatches',
+        params: [
+          1,
+          [
+            {
+              nodes: [
+                { childCount: 2, className: 'Editor', type: 4 },
+                { childCount: 1, type: 4 },
+              ],
+              type: 2,
+            },
+          ],
+        ],
+      },
+      {
+        method: 'Viewlet.setTreePatches',
+        params: [
+          1,
+          [
+            { index: 0, type: 7 },
+            { nodes: [{ text: 'continued', type: 12 }], type: 6 },
+          ],
+        ],
+      },
+    ]
+    await window.api.mountPlayer(document.body, {
+      source: {
+        session: {
+          events: [
+            {
+              data: { commandReplay: true, dom: { children: [], tag: 'body' }, styles: [], viewport: [800, 600] },
+              sequence: 0,
+              timestamp: 0,
+              type: 'frame',
+            },
+            ...messages.map((message, index) => ({
+              data: { connection: 1, direction: 'to-renderer', message, renderer: true },
+              sequence: index + 1,
+              timestamp: index < 3 ? 0 : (index - 2) * 1000,
+              type: 'message',
+            })),
+          ],
+          version: 1,
+        },
+      },
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
+    })
+  })
+  const editor = page.locator('.SessionReplaySurface .Editor')
+  const controls = page.getByRole('group', { name: 'Session replay controls' })
+  const slider = controls.getByRole('slider')
+  const status = controls.locator('output')
+  await expect(editor).toHaveText('before')
+  await controls.getByRole('button', { exact: true, name: 'Play' }).click()
+  await expect(editor).toHaveText('continued')
+  await expect(slider).toHaveValue('2000')
+  await expect(status).not.toContainText('Incomplete replay virtual DOM')
+  await slider.focus()
+  await page.keyboard.press('Home')
+  await expect(editor).toHaveText('before')
+  await page.keyboard.press('End')
+  await expect(editor).toHaveText('continued')
+  await expect(status).not.toContainText('Incomplete replay virtual DOM')
+})
+
 test('starts at the first complete editor paint and returns to it when seeking or restarting', async ({ page }) => {
   await page.evaluate(async () => {
     const commands = [
@@ -418,24 +499,70 @@ test('an explicit preview option overrides the saved setting and player disposal
   await expect(page.locator('iframe')).toHaveCount(0)
 })
 
+test('dragging the activity timeline updates the preview and progress before release and captures the pointer outside the chart', async ({
+  page,
+}) => {
+  await timeline(page)
+  const chart = page.getByRole('img', { name: 'Session replay activity' })
+  const bounds = (await chart.boundingBox())!
+  const slider = page.getByRole('slider')
+  const preview = page.frameLocator('iframe[title="Session replay preview"]')
+  const cursor = chart.locator('line')
+  await page.mouse.move(bounds.x + bounds.width * 0.25, bounds.y + bounds.height / 2)
+  await page.mouse.down()
+  for (const fraction of [0.75, 0.25]) {
+    await page.mouse.move(bounds.x + bounds.width * fraction, bounds.y + bounds.height / 2, { steps: 5 })
+    const text = fraction > 0.5 ? 'edited after typing' : 'const answer'
+    await expect(page.locator('.SessionReplaySurface .Editor')).toContainText(text)
+    await expect(preview.locator('.Editor')).toContainText(text)
+    await expect(slider).toHaveValue(String(1500 * fraction))
+    await expect(slider).toHaveCSS('--replay-progress', `${fraction * 100}%`)
+    await expect(cursor).toHaveAttribute('x1', String(fraction * 240))
+  }
+  await page.mouse.move(bounds.x + bounds.width + 20, bounds.y - 20)
+  await expect(slider).toHaveValue('1500')
+  await expect(slider).toHaveCSS('--replay-progress', '100%')
+  await page.mouse.move(bounds.x - 20, bounds.y - 20)
+  await expect(slider).toHaveValue('0')
+  await expect(slider).toHaveCSS('--replay-progress', '0%')
+  await page.mouse.up()
+  await chart.hover({ position: { x: bounds.width * 0.75, y: bounds.height / 2 } })
+  await expect(preview.locator('.Editor')).toHaveText('edited after typing')
+  await expect(slider).toHaveValue('0')
+})
+
+test('cancelling an activity timeline drag stops seeking', async ({ page }) => {
+  await timeline(page)
+  const chart = page.getByRole('img', { name: 'Session replay activity' })
+  const bounds = (await chart.boundingBox())!
+  await page.mouse.move(bounds.x + bounds.width * 0.25, bounds.y + bounds.height / 2)
+  await page.mouse.down()
+  await expect(page.getByRole('slider')).toHaveValue('375')
+  await chart.dispatchEvent('pointercancel', { pointerId: 1 })
+  await page.mouse.move(bounds.x + bounds.width * 0.75, bounds.y + bounds.height / 2)
+  await expect(page.frameLocator('iframe[title="Session replay preview"]').locator('.Editor')).toHaveText('edited after typing')
+  await expect(page.getByRole('slider')).toHaveValue('375')
+  await page.mouse.up()
+})
+
 for (const playing of [false, true]) {
   const buttonName = playing ? 'Pause' : 'Play'
   const advance = playing ? 50 : 0
-  for (const control of ['slider click', 'slider drag', 'activity chart']) {
+  for (const control of ['slider click', 'slider drag', 'activity chart', 'activity drag']) {
     test(`${control} preserves ${playing ? 'playing' : 'paused'} playback when seeking forward and backward`, async ({ page }) => {
       await timeline(page)
       await page.clock.install({ time: 0 })
       await page.clock.pauseAt(1000)
       const slider = page.getByRole('slider')
       if (playing) await page.getByRole('button', { exact: true, name: 'Play' }).click()
-      const target = control === 'activity chart' ? page.getByRole('img', { name: 'Session replay activity' }) : slider
+      const target = control.startsWith('activity') ? page.getByRole('img', { name: 'Session replay activity' }) : slider
       const bounds = (await target.boundingBox())!
-      if (control === 'slider drag') {
+      if (control.endsWith('drag')) {
         await page.mouse.move(bounds.x + 7, bounds.y + bounds.height / 2)
         await page.mouse.down()
       }
       for (const fraction of [0.75, 0.25]) {
-        if (control === 'slider drag') {
+        if (control.endsWith('drag')) {
           await page.mouse.move(bounds.x + bounds.width * fraction, bounds.y + bounds.height / 2, { steps: 5 })
         } else {
           await target.click({ position: { x: bounds.width * fraction, y: bounds.height / 2 } })
@@ -448,7 +575,7 @@ for (const playing of [false, true]) {
         await page.clock.runFor(50)
         await expect(slider).toHaveValue(String(position + advance))
       }
-      if (control === 'slider drag') await page.mouse.up()
+      if (control.endsWith('drag')) await page.mouse.up()
       const position = Number(await slider.inputValue())
       await page.clock.runFor(50)
       await expect(slider).toHaveValue(String(position + advance))

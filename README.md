@@ -79,7 +79,9 @@ Existing renderer and backend consumers remain pinned to the earlier flat-layout
 
 When hosting recordings from another editor build, pass `assetBaseUrl` to
 `mountPlayer`, for example `/session-replay-assets/lvce-editor/`. Serve the editor's
-`icons`, `fonts`, and `file-icons` directories there. The player maps recorded
+`icons`, `fonts`, `file-icons`, and extension images under `extensions/<extension-id>/`
+there. Preserve each extension's internal image paths, including nested `icons` directories.
+The player maps recorded
 asset paths to this same-origin directory, including old commit prefixes and
 Electron file URLs. Other recorded network resources remain blocked. Without
 this option, playback continues to permit only embedded image and font data.

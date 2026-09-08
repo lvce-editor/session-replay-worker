@@ -28,6 +28,36 @@ const setup = [
   message('Viewlet.appendToBody', 1),
 ]
 
+test.each(['Viewlet.setDom2', 'Viewlet.setPatches', 'Viewlet.setTreePatches'])(
+  '%s replays available children when child counts exceed the payload',
+  (method) => {
+    const nodes = [
+      { childCount: 2, className: 'Editor', type: V.Div },
+      { childCount: 1, type: V.Div },
+    ]
+    const content = loadContent(
+      session([
+        ...setup,
+        message(method, 1, method === 'Viewlet.setDom2' ? nodes : [{ nodes, type: method === 'Viewlet.setPatches' ? 6 : 2 }]),
+        message('Viewlet.setTreePatches', 1, [
+          { index: 0, type: 7 },
+          { nodes: [{ text: 'continued', type: V.Text }], type: 6 },
+        ]),
+      ]),
+    )
+    const incomplete = content.seek(400).frame
+    expect(incomplete.dom.children?.[0]).toEqual({
+      attrs: { class: 'Editor' },
+      children: [{ attrs: {}, children: [], tag: 'div' }],
+      tag: 'div',
+    })
+    expect(content.seek(500).frame.dom.children?.[0].children?.[0].children).toEqual([{ text: 'continued' }])
+    expect(content.seek(300).frame.dom.children?.[0].children).toEqual([{ text: 'before' }])
+    expect(content.seek(400).frame).toEqual(incomplete)
+    expect(content.preview(500).frame).toEqual(content.seek(500).frame)
+  },
+)
+
 test('rebuilds command recordings and seeks backwards through tree patches, styles and removal', () => {
   const content = loadContent(
     session([
