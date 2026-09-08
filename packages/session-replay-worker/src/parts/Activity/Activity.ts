@@ -1,7 +1,7 @@
 import type { ReplayEvent } from '../Types/Types.ts'
 
 // Quarter-second buckets for short sessions, bounded for long recordings.
-export const getActivity = (events: readonly ReplayEvent[], duration: number): number[] => {
+export const getActivity = (events: readonly ReplayEvent[], duration: number, start = 0): number[] => {
   const length = Math.max(1, Math.min(240, Math.ceil(duration / 250)))
   const counts = Array.from<number>({ length })
   counts.fill(0)
@@ -12,7 +12,8 @@ export const getActivity = (events: readonly ReplayEvent[], duration: number): n
       initialFrame = false
       continue
     }
-    const index = Math.min(counts.length - 1, Math.floor((event.timestamp / duration) * counts.length))
+    if (start > 0 && event.timestamp <= start) continue
+    const index = Math.min(counts.length - 1, Math.floor(((event.timestamp - start) / duration) * counts.length))
     counts[index]++
   }
   return counts
