@@ -78,6 +78,8 @@ export interface ReplayClient {
 }
 
 export interface PlayerOptions {
+  /** Same-origin directory containing trusted icons, fonts and file-icons. */
+  assetBaseUrl?: string | URL
   source: ReplaySource
   workerUrl: string | URL
 }

@@ -1,4 +1,5 @@
 import type { Frame, PlayerOptions, ReplayNode, SeekResult } from './types.ts'
+import { resolveAssetUrl, rewriteAssetUrls } from './assetUrls.ts'
 import { createClient } from './client.ts'
 
 const tags = new Set(
@@ -10,7 +11,7 @@ const tags = new Set(
 const attributes =
   /^(class|style|id|title|role|type|checked|disabled|selected|placeholder|width|height|viewBox|d|fill|stroke|cx|cy|r|x|y|x1|x2|y1|y2|points|transform|xmlns|data-[\w-]+|aria-[\w-]+)$/i
 
-export const renderFrame = (document: Document, frame: Frame): void => {
+export const renderFrame = (document: Document, frame: Frame, assetBaseUrl?: string): void => {
   let count = 0
   const scrolls: [Element, [number, number]][] = []
   // Keep the inert DOM reconstruction and its bounds together.
@@ -22,9 +23,11 @@ export const renderFrame = (document: Document, frame: Frame): void => {
     const node = value.svg ? document.createElementNS('http://www.w3.org/2000/svg', tag) : document.createElement(tag)
     const entries = Object.entries(value.attrs || {})
     for (const [key, val] of entries) {
-      if (attributes.test(key) && typeof val === 'string') node.setAttribute(key, val)
-      if (key === 'src' && tag === 'img' && typeof val === 'string' && /^data:image\/(png|jpeg|gif|webp);base64,/.test(val))
-        node.setAttribute(key, val)
+      if (attributes.test(key) && typeof val === 'string') node.setAttribute(key, key === 'style' ? rewriteAssetUrls(val, assetBaseUrl) : val)
+      if (key === 'src' && tag === 'img' && typeof val === 'string') {
+        const src = /^data:image\/(png|jpeg|gif|webp);base64,/.test(val) ? val : resolveAssetUrl(val, assetBaseUrl)
+        if (src) node.setAttribute(key, src)
+      }
     }
     if (typeof value.value === 'string' && 'value' in node && (!('type' in node) || node.type !== 'file')) node.value = value.value
     if (typeof value.checked === 'boolean' && 'checked' in node) node.checked = value.checked
@@ -35,17 +38,34 @@ export const renderFrame = (document: Document, frame: Frame): void => {
   }
   const root = visit(frame.dom)
   const style = document.createElement('style')
-  style.textContent = (frame.styles || []).filter((value) => typeof value === 'string').join('\n')
+  style.textContent = rewriteAssetUrls((frame.styles || []).filter((value) => typeof value === 'string').join('\n'), assetBaseUrl)
   document.head.querySelectorAll('style').forEach((node) => node.remove())
   document.head.append(style)
   document.documentElement.className = typeof frame.documentElement?.className === 'string' ? frame.documentElement.className : ''
-  document.documentElement.style.cssText = typeof frame.documentElement?.style === 'string' ? frame.documentElement.style : ''
+  document.documentElement.style.cssText =
+    typeof frame.documentElement?.style === 'string' ? rewriteAssetUrls(frame.documentElement.style, assetBaseUrl) : ''
   if (root.nodeName === 'BODY') document.body.replaceWith(root)
   else document.body.replaceChildren(root)
   for (const [node, [x, y]] of scrolls) node.scrollTo(x, y)
 }
 
-export const mountPlayer = async (container: HTMLElement, { source, workerUrl }: PlayerOptions): Promise<() => void> => {
+export const mountPlayer = async (container: HTMLElement, { source, workerUrl, assetBaseUrl }: PlayerOptions): Promise<() => void> => {
+  const ownerDocument = container.ownerDocument
+  const assets = assetBaseUrl ? new URL(assetBaseUrl, ownerDocument.baseURI) : undefined
+  if (
+    assets &&
+    (assets.origin !== new URL(ownerDocument.baseURI).origin ||
+      !/^https?:$/.test(assets.protocol) ||
+      !/^[\w/.-]+$/.test(assets.pathname) ||
+      assets.username ||
+      assets.password)
+  )
+    throw new Error('Replay assets must be served from the same origin')
+  if (assets) {
+    assets.search = assets.hash = ''
+    if (!assets.pathname.endsWith('/')) assets.pathname += '/'
+  }
+  const assetSource = assets ? ` ${assets.href}` : ''
   const client = createClient(workerUrl)
   container.replaceChildren()
   container.className = 'SessionReplay'
@@ -60,9 +80,8 @@ export const mountPlayer = async (container: HTMLElement, { source, workerUrl }:
   const loaded = new Promise<void>((resolve) => {
     iframe.onload = (): void => resolve()
   })
-  // An opaque, inert visual document: recorded markup cannot run scripts, submit forms or fetch URLs.
-  iframe.srcdoc =
-    '<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; img-src data:; font-src data:"></head><body></body></html>'
+  // Keep recorded markup inert; only the explicitly configured asset directory may load images and fonts.
+  iframe.srcdoc = `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; img-src data:${assetSource}; font-src data:${assetSource}"></head><body></body></html>`
   viewport.append(iframe)
   const controls = document.createElement('div')
   controls.style.cssText = 'display:flex;gap:12px;align-items:center;padding:12px;font:14px sans-serif;background:#202020;color:white'
@@ -93,7 +112,7 @@ export const mountPlayer = async (container: HTMLElement, { source, workerUrl }:
     const [width, height] = result.frame.viewport || [1280, 720]
     iframe.style.width = `${Math.max(1, Math.min(16_384, width))}px`
     iframe.style.height = `${Math.max(1, Math.min(16_384, height))}px`
-    renderFrame(iframe.contentDocument!, result.frame)
+    renderFrame(iframe.contentDocument!, result.frame, assets?.href)
   }
   const pause = (): void => {
     playing = false
