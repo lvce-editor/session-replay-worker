@@ -8,7 +8,9 @@ Set `sessionReplay.enabled` to `true` to save locally in IndexedDB. Set `session
 
 Use **SessionReplay: Download Session** to export a versioned JSON file. **SessionReplay: Replay Current Session** opens a new tab from local storage; **SessionReplay: Open Session** opens a file chooser in a separate replay tab. Local recordings are scoped to the editor origin/profile. Administrators can browse `/session-replay` on the backend and open recordings in new tabs.
 
-Uploads use the configured layout backend and existing bearer/cookie authentication. For temporary anonymous uploads, add `allowAnonymous=true` to the editor URL as well as enabling upload. Anonymous creation is permitted only by `POST /session-replay?allowAnonymous=true`; append requests also carry that opt-in and the server-issued write token. Invalid supplied authentication is not downgraded. Reads and the list always require administrator access.
+Uploads use the configured layout backend and existing bearer/cookie authentication. To allow uploads without signing in, enable `sessionReplay.allowAnonymousUploads` as well as `sessionReplay.uploadEnabled`. The anonymous upload setting defaults to `false`; the `allowAnonymous=true` editor URL parameter remains supported. Anonymous creation is permitted only by `POST /session-replay?allowAnonymous=true`; append requests also carry that opt-in and the server-issued write token. Invalid supplied authentication is not downgraded. Reads and the list always require administrator access.
+
+All three settings are declared in `packages/session-replay-worker/settings.json` with their types, defaults, and descriptions. The npm package includes them in `dist/settings.json`, also exposed as `@lvce-editor/session-replay-worker/settings`, for the editor's builtin settings collection.
 
 ## Format and rendering
 

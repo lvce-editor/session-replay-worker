@@ -12,6 +12,7 @@
     "./capture": "./src/parts/Capture/Capture.ts",
     "./client": "./src/parts/Client/Client.ts",
     "./player": "./src/parts/Player/Player.ts",
+    "./settings": "./settings.json",
     "./worker": "./src/sessionReplayWorkerMain.ts"
   },
   "main": "src/sessionReplayWorkerMain.ts",
@@ -21,6 +22,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "files": [
+    "settings.json",
     "src"
   ],
   "devDependencies": {
