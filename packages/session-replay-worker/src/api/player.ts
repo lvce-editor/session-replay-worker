@@ -30,6 +30,11 @@ export const renderFrame = (document: Document, frame: Frame, assetBaseUrl?: str
         if (src) node.setAttribute(key, src)
       }
     }
+    // Older DOM snapshots omitted image sources, but the editor logo has a stable identity.
+    if (tag === 'img' && !node.hasAttribute('src') && node.classList.contains('TitleBarIconIcon')) {
+      const src = resolveAssetUrl('/icons/icon.svg', assetBaseUrl)
+      if (src) node.setAttribute('src', src)
+    }
     if (typeof value.value === 'string' && 'value' in node && (!('type' in node) || node.type !== 'file')) node.value = value.value
     if (typeof value.checked === 'boolean' && 'checked' in node) node.checked = value.checked
     const children = value.children || []
