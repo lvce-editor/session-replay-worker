@@ -1,5 +1,6 @@
 import type { ReplayStorage } from '../Storage/Storage.ts'
 import type { WorkerCommands } from '../Types/Types.ts'
+import { createReplayMessageFilter } from '../FilterReplayMessage/FilterReplayMessage.ts'
 import { loadContent } from '../Protocol/Protocol.ts'
 import { createProxyRegistry } from '../Proxy/Proxy.ts'
 import { createRecorder } from '../Recorder/Recorder.ts'
@@ -22,9 +23,10 @@ const report = (error: unknown): void => {
   recording = false
 }
 const serializeMessage = createMessageSerializer()
+const shouldRecord = createReplayMessageFilter()
 const proxies = createProxyRegistry({
   record(message) {
-    if (!recording) return
+    if (!recording || !shouldRecord(message)) return
     if (pending >= 500) {
       report(new Error('Recording cannot keep up with worker messages'))
       return
