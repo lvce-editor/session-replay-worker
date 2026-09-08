@@ -3,9 +3,13 @@ import { createActivityChart } from '../ActivityChart/ActivityChart.ts'
 import { createClient } from '../Client/Client.ts'
 import { playerStyles } from '../PlayerStyles/PlayerStyles.ts'
 import { createReplayRoot, disposeFrame, renderFrame } from '../RenderFrame/RenderFrame.ts'
+import { createTimelinePreview } from '../TimelinePreview/TimelinePreview.ts'
 export { renderFrame } from '../RenderFrame/RenderFrame.ts'
 
-export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source, workerUrl }: PlayerOptions): Promise<() => void> => {
+export const mountPlayer = async (
+  container: HTMLElement,
+  { assetBaseUrl, source, timelinePreviewEnabled, workerUrl }: PlayerOptions,
+): Promise<() => void> => {
   const { ownerDocument } = container
   const assets = assetBaseUrl ? new URL(assetBaseUrl, ownerDocument.baseURI) : undefined
   if (
@@ -135,6 +139,7 @@ export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source
     }
     void tick()
   }
+  const preview = createTimelinePreview(container, controls, slider, activity.element, client, () => duration, assets?.href, timelinePreviewEnabled)
   try {
     const initial = await client.invoke('load', source)
     activity.setActivity(initial.activity)
@@ -146,6 +151,7 @@ export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source
   return () => {
     disposed = true
     pause()
+    preview.dispose()
     client.dispose()
     disposeFrame(surface)
     container.replaceChildren()

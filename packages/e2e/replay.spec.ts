@@ -202,3 +202,151 @@ test('a zero-duration replay has a flat activity chart and can be clicked safely
   await expect(page.getByRole('slider')).toHaveValue('0')
   await expect(page.locator('output')).toHaveText('0.0 / 0.0 s')
 })
+
+test('timeline hover previews seek independently and leave the playing frame untouched', async ({ page }) => {
+  await timeline(page)
+  const slider = page.getByRole('slider')
+  const bounds = (await slider.boundingBox())!
+  await slider.hover({ position: { x: bounds.width - 7, y: 14 } })
+  const popup = page.locator('.SessionReplayPreview')
+  const preview = page.frameLocator('iframe[title="Session replay preview"]')
+  await expect(popup).toBeVisible()
+  await expect(preview.locator('.Editor')).toHaveText('edited after typing')
+  await expect(preview.locator('.Explorer')).toHaveCount(0)
+  await expect(page.locator('.SessionReplaySurface .Editor')).toContainText('const answer = 42')
+  await expect(slider).toHaveValue('0')
+  await slider.hover({ position: { x: 7, y: 14 } })
+  await expect(preview.locator('.Editor')).toContainText('const answer = 42')
+  await expect(preview.locator('.Explorer')).toContainText('hello.js')
+  await page.clock.install({ time: 0 })
+  await page.clock.pauseAt(1000)
+  await page.getByRole('button', { exact: true, name: 'Play' }).click()
+  await slider.hover({ position: { x: bounds.width - 7, y: 14 } })
+  await page.clock.runFor(100)
+  await expect(preview.locator('.Editor')).toHaveText('edited after typing')
+  await expect(page.getByRole('button', { exact: true, name: 'Pause' })).toBeVisible()
+  expect(Number(await slider.inputValue())).toBeLessThan(1000)
+  await page.mouse.move(0, 0)
+  await expect(popup).toBeHidden()
+})
+
+test('preview styles, root themes and media queries are isolated from playback', async ({ page }) => {
+  await page.evaluate(async () => {
+    const before = window.api.capture(document)
+    before.documentElement = { className: 'before', style: '--editor-color: rgb(0, 128, 0)' }
+    before.styles = ['.Editor { color: var(--editor-color) }']
+    const after = structuredClone(before)
+    after.documentElement = { className: 'after', style: '--editor-color: rgb(255, 0, 0)' }
+    after.viewport = [800, 600]
+    after.styles = ['.Editor { color: var(--editor-color) } @media (width: 800px) { .Editor { background: rgb(0, 0, 255) } }']
+    await window.api.mountPlayer(document.body, {
+      source: {
+        session: {
+          events: [
+            { data: before, sequence: 0, timestamp: 0, type: 'frame' },
+            { data: after, sequence: 1, timestamp: 1000, type: 'frame' },
+          ],
+          version: 1,
+        },
+      },
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
+    })
+  })
+  const chart = page.getByRole('img', { name: 'Session replay activity' })
+  const bounds = (await chart.boundingBox())!
+  await chart.dispatchEvent('pointermove', { clientX: bounds.x + bounds.width, pointerType: 'mouse' })
+  const preview = page.frameLocator('iframe[title="Session replay preview"]')
+  await expect(preview.locator('.Editor')).toHaveCSS('color', 'rgb(255, 0, 0)')
+  await expect(preview.locator('.Editor')).toHaveCSS('background-color', 'rgb(0, 0, 255)')
+  await expect(preview.locator('html')).toHaveClass('after')
+  await expect(page.locator('html')).toHaveClass('before')
+  await expect(page.locator('.SessionReplaySurface .Editor')).toHaveCSS('color', 'rgb(0, 128, 0)')
+})
+
+test('preview setting persists and disables preview requests and rendering', async ({ page }) => {
+  await timeline(page)
+  const setting = page.getByRole('checkbox', { name: 'Timeline previews' })
+  await expect(setting).toBeChecked()
+  await page.getByRole('slider').hover()
+  await expect(page.locator('.SessionReplayPreview')).toBeVisible()
+  await setting.uncheck()
+  await page.getByRole('slider').hover()
+  await expect(page.locator('.SessionReplayPreview')).toBeHidden()
+  await expect(page.locator('iframe')).toHaveCount(0)
+  await page.reload()
+  await page.waitForFunction(() => window.api)
+  await timeline(page)
+  await expect(setting).not.toBeChecked()
+  await page.getByRole('slider').hover()
+  await expect(page.locator('iframe')).toHaveCount(0)
+  await setting.check()
+  await page.getByRole('slider').hover()
+  await expect(page.locator('.SessionReplayPreview')).toBeVisible()
+})
+
+test('preview stays within a narrow viewport and dismisses on Escape', async ({ page }) => {
+  await page.setViewportSize({ height: 640, width: 320 })
+  await timeline(page)
+  const chart = page.getByRole('img', { name: 'Session replay activity' })
+  await chart.hover()
+  const popup = page.locator('.SessionReplayPreview')
+  await expect(popup).toBeVisible()
+  const bounds = (await popup.boundingBox())!
+  expect(bounds.x).toBeGreaterThanOrEqual(0)
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(320)
+  expect(bounds.y).toBeGreaterThanOrEqual(0)
+  expect(bounds.y + bounds.height).toBeLessThan((await chart.boundingBox())!.y)
+  await page.keyboard.press('Escape')
+  await expect(popup).toBeHidden()
+})
+
+test('leaving the timeline discards delayed previews and disabling stops further requests', async ({ page }) => {
+  await page.evaluate(() => {
+    // Preserve the native receiver while simulating a slow worker under the fake clock.
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const original = Worker.prototype.postMessage
+    Worker.prototype.postMessage = function (message: { method: string }): void {
+      if (message.method === 'preview') {
+        document.documentElement.dataset.previewRequests = String(Number(document.documentElement.dataset.previewRequests || 0) + 1)
+        // eslint-disable-next-line e2e/no-timeouts, unicorn/no-this-outside-of-class
+        setTimeout(() => original.call(this, message), 500)
+        // eslint-disable-next-line unicorn/no-this-outside-of-class
+      } else original.call(this, message)
+    }
+  })
+  await timeline(page)
+  await page.clock.install()
+  await page.getByRole('slider').hover()
+  await page.clock.runFor(100)
+  await expect(page.locator('html')).toHaveAttribute('data-preview-requests', '1')
+  await page.mouse.move(0, 0)
+  await page.clock.runFor(1000)
+  await expect(page.locator('.SessionReplayPreview')).toBeHidden()
+  await expect(page.locator('iframe')).toHaveCount(0)
+  await page.getByRole('checkbox', { name: 'Timeline previews' }).uncheck()
+  await page.getByRole('slider').hover()
+  await page.clock.runFor(1000)
+  await expect(page.locator('html')).toHaveAttribute('data-preview-requests', '1')
+  await expect(page.locator('iframe')).toHaveCount(0)
+})
+
+test('an explicit preview option overrides the saved setting and player disposal removes the preview', async ({ page }) => {
+  await page.evaluate(async () => {
+    localStorage.setItem('sessionReplay.timelinePreviewEnabled', 'true')
+    const frame = window.api.capture(document)
+    window.stopObserving = await window.api.mountPlayer(document.body, {
+      source: { session: { events: [{ data: frame, sequence: 0, timestamp: 0, type: 'frame' }], version: 1 } },
+      timelinePreviewEnabled: false,
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
+    })
+  })
+  const setting = page.getByRole('checkbox', { name: 'Timeline previews' })
+  await expect(setting).not.toBeChecked()
+  await setting.check()
+  await page.getByRole('slider').hover()
+  await expect(page.locator('.SessionReplayPreview')).toBeVisible()
+  await expect(page.locator('.SessionReplayPreviewTime')).toHaveText('0.0 s')
+  await page.evaluate(() => window.stopObserving())
+  await expect(page.locator('.SessionReplayPreview')).toHaveCount(0)
+  await expect(page.locator('iframe')).toHaveCount(0)
+})

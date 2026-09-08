@@ -62,6 +62,7 @@ export interface WorkerCommands {
   export(): Session | Promise<Session>
   flush(): Promise<void>
   load(source: ReplaySource): Promise<SeekResult & { activity: number[] }>
+  preview(timestamp: number): SeekResult
   proxy(port: MessagePort): MessagePort
   record(...params: RecordParams): Promise<void>
   seek(timestamp: number): SeekResult
@@ -83,5 +84,7 @@ export interface PlayerOptions {
   /** Same-origin directory containing trusted icons, fonts and file-icons. */
   assetBaseUrl?: string | URL
   source: ReplaySource
+  /** Enable timeline hover previews; otherwise use the saved player setting (default true). */
+  timelinePreviewEnabled?: boolean
   workerUrl: string | URL
 }

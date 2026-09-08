@@ -14,6 +14,12 @@ Uploads use the configured layout backend and existing bearer/cookie authenticat
 
 All three settings are declared in `packages/session-replay-worker/settings.json` with their types, defaults, and descriptions. The npm package includes them in `dist/settings.json`, also exposed as `@lvce-editor/session-replay-worker/settings`, for the editor's builtin settings collection.
 
+## Timeline previews
+
+Hover over the seek bar or activity chart to see a miniature frame and timestamp without seeking or pausing playback. **Timeline previews** in the player controls turns the feature on or off. It defaults to on and is saved per origin in browser storage. Embedders can provide `timelinePreviewEnabled: false` to `mountPlayer` to override the saved initial value.
+
+The preview uses the same virtual DOM renderer in a sandboxed, script-free iframe, scaled from the recorded viewport. Its document isolates recorded styles, root theme variables, and media queries from the main replay. A separate, lazily created replay cursor shares the recording in the worker; pointer requests are coalesced, stale results are ignored, and disabling previews removes their rendered document.
+
 ## Format and rendering
 
 A version 1 session has `id`, `createdAt`, and `events`. Each event has a contiguous zero-based `sequence`, monotonic relative `timestamp` in milliseconds, `type` (`message` or `frame`), and `data`.
@@ -78,6 +84,6 @@ asset paths to this same-origin directory, including old commit prefixes and
 Electron file URLs. Other recorded network resources remain blocked. Without
 this option, playback continues to permit only embedded image and font data.
 
-Playback renders the recorded body in normal DOM, without an iframe, shadow root, or recorded head markup. Successive virtual trees are reconciled in place: unchanged frames do not mutate the replay DOM, and elements with an `id` or `data-uid` retain their identity across sibling insertions and removals. CSS uses document adopted stylesheets that are replaced only when their content changes. Selectors retain their normal document behavior, and theme classes and variables are applied to the document root. Imported CSS is filtered before adoption, and supported icon URLs are remapped only to the configured asset directory.
+The main playback surface renders the recorded body in normal DOM, without an iframe, shadow root, or recorded head markup. Successive virtual trees are reconciled in place: unchanged frames do not mutate the replay DOM, and elements with an `id` or `data-uid` retain their identity across sibling insertions and removals. CSS uses document adopted stylesheets that are replaced only when their content changes. Selectors retain their normal document behavior, and theme classes and variables are applied to the document root. Imported CSS is filtered before adoption, and supported icon URLs are remapped only to the configured asset directory.
 
 `renderFrame(documentOrElement, frame, assetBaseUrl?)` retains rendering state per target. Passing a document mounts a replay surface in its body; passing an element renders into that element. Replay styles share the page with the controls. Fonts load through normal CSS, and disposing the player removes its stylesheets and restores the document theme.
