@@ -325,7 +325,6 @@ export const cases: { name: string; run: () => Promise<void> }[] = [
       directPort.postMessage({ id: 7, result: 81 })
       await response
       const before = await client.invoke('export')
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
       response = receive(rendererPort)
       root.port1.postMessage({ method: 'Viewlet.sendMultiple', params: [[['Viewlet.commitPending', 1, 81]]] })
       await response
@@ -344,11 +343,13 @@ export const cases: { name: string; run: () => Promise<void> }[] = [
       check(session.events.filter((event) => event.type === 'frame').length === 1, 'Expected exactly one initial frame')
       check(stopped.events.length === session.events.length, 'Recording continued after stop')
       check(afterStop.method === 'still-forwarding', 'Proxy stopped forwarding')
-      await withPlayer({ session }, async () => {
+      // Range controls seek in whole milliseconds; keep command boundaries distinct on fast runners.
+      const replaySession = { ...session, events: session.events.map((event) => ({ ...event, timestamp: event.sequence * 10 })) }
+      await withPlayer({ session: replaySession }, async () => {
         seek(slider().max)
         await eventually(() => text('.Editor') === 'committed edit')
         check(css('.Editor', 'color') === 'rgb(10, 20, 30)', 'Command stylesheet was not restored')
-        const beforeCommit = Math.floor(before.events.at(-1)!.timestamp)
+        const beforeCommit = before.events.at(-1)!.sequence * 10
         seek(String(beforeCommit))
         await eventually(() => text('.Editor') === 'message recorded')
       })
