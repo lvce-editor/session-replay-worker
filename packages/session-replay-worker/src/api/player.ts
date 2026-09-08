@@ -113,7 +113,7 @@ export const mountPlayer = async (container: HTMLElement, { source, workerUrl }:
     slider.value = String(Math.round(position))
     slider.style.setProperty('--replay-progress', `${duration > 0 ? (position / duration) * 100 : 0}%`)
     const time = `${(position / 1000).toFixed(1)} / ${(duration / 1000).toFixed(1)} s`
-    slider.setAttribute('aria-valuetext', time)
+    slider.ariaValueText = time
     status.textContent = time
     const [width, height] = result.frame.viewport || [1280, 720]
     iframe.style.width = `${Math.max(1, Math.min(16_384, width))}px`

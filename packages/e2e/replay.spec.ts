@@ -379,7 +379,7 @@ test('replay icon button supports keyboard play, pause and seeking', async ({ pa
   await expect(slider).toBeFocused()
   await page.keyboard.press('End')
   await expect(slider).toHaveValue('1500')
-  await expect(slider).toHaveAttribute('aria-valuetext', '1.5 / 1.5 s')
+  await expect(slider).toHaveJSProperty('ariaValueText', '1.5 / 1.5 s')
   await expect(slider).toHaveCSS('--replay-progress', '100%')
   await page.keyboard.press('Home')
   await expect(slider).toHaveValue('0')
