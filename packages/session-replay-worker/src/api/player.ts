@@ -1,5 +1,6 @@
 import type { Frame, PlayerOptions, ReplayNode, SeekResult } from './types.ts'
 import { createClient } from './client.ts'
+import { playerStyles } from './playerStyles.ts'
 
 const tags = new Set(
   'body div span p pre code main section article header footer nav aside h1 h2 h3 h4 h5 h6 ul ol li table thead tbody tr td th button input textarea select option label form fieldset legend a img br hr strong em b i u s small details summary svg path rect circle ellipse line polyline polygon g defs clipPath text tspan'.split(
@@ -51,6 +52,8 @@ export const mountPlayer = async (container: HTMLElement, { source, workerUrl }:
   container.className = 'SessionReplay'
   container.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;background:#202020;color:white;z-index:2147483647'
   const document = container.ownerDocument
+  const style = document.createElement('style')
+  style.textContent = playerStyles
   const viewport = document.createElement('div')
   viewport.style.cssText = 'flex:1;min-height:0;overflow:auto;position:relative'
   const iframe = document.createElement('iframe')
@@ -65,20 +68,39 @@ export const mountPlayer = async (container: HTMLElement, { source, workerUrl }:
     '<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; style-src &#39;unsafe-inline&#39;; img-src data:; font-src data:"></head><body></body></html>'
   viewport.append(iframe)
   const controls = document.createElement('div')
-  controls.style.cssText = 'display:flex;gap:12px;align-items:center;padding:12px;font:14px sans-serif;background:#202020;color:white'
+  controls.className = 'SessionReplayControls'
+  controls.setAttribute('role', 'group')
+  controls.setAttribute('aria-label', 'Session replay controls')
   const play = document.createElement('button')
-  play.textContent = 'Play'
+  play.type = 'button'
+  play.className = 'SessionReplayPlay'
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  icon.setAttribute('viewBox', '0 0 24 24')
+  icon.setAttribute('aria-hidden', 'true')
+  icon.setAttribute('focusable', 'false')
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  icon.append(path)
+  play.append(icon)
+  const updatePlayButton = (playing: boolean): void => {
+    const label = playing ? 'Pause' : 'Play'
+    play.setAttribute('aria-label', label)
+    play.title = label
+    path.setAttribute('d', playing ? 'M6 4h4v16H6zM14 4h4v16h-4z' : 'M8 4v16l12-8z')
+  }
+  updatePlayButton(false)
   const slider = document.createElement('input')
   slider.type = 'range'
   slider.min = '0'
   slider.step = '1'
   slider.value = '0'
   slider.setAttribute('aria-label', 'Session replay position')
-  slider.style.flex = '1'
+  slider.className = 'SessionReplayPosition'
   const status = document.createElement('output')
-  status.setAttribute('aria-live', 'polite')
+  status.className = 'SessionReplayTime'
+  // Playback updates frequently; announce the position only when the slider is used.
+  status.setAttribute('aria-live', 'off')
   controls.append(play, slider, status)
-  container.append(viewport, controls)
+  container.append(style, viewport, controls)
   let disposed = false
   let playing = false
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -89,7 +111,10 @@ export const mountPlayer = async (container: HTMLElement, { source, workerUrl }:
     ;({ duration, position } = result)
     slider.max = String(Math.ceil(duration))
     slider.value = String(Math.round(position))
-    status.textContent = `${(position / 1000).toFixed(1)} / ${(duration / 1000).toFixed(1)} s`
+    slider.style.setProperty('--replay-progress', `${duration > 0 ? (position / duration) * 100 : 0}%`)
+    const time = `${(position / 1000).toFixed(1)} / ${(duration / 1000).toFixed(1)} s`
+    slider.ariaValueText = time
+    status.textContent = time
     const [width, height] = result.frame.viewport || [1280, 720]
     iframe.style.width = `${Math.max(1, Math.min(16_384, width))}px`
     iframe.style.height = `${Math.max(1, Math.min(16_384, height))}px`
@@ -98,7 +123,7 @@ export const mountPlayer = async (container: HTMLElement, { source, workerUrl }:
   const pause = (): void => {
     playing = false
     clearTimeout(timer)
-    play.textContent = 'Play'
+    updatePlayButton(false)
   }
   const seek = async (time: number): Promise<void> => {
     const id = ++requestId
@@ -107,6 +132,8 @@ export const mountPlayer = async (container: HTMLElement, { source, workerUrl }:
   }
   const report = (error: unknown): void => {
     pause()
+    status.setAttribute('role', 'alert')
+    status.setAttribute('aria-live', 'assertive')
     status.textContent = error instanceof Error ? error.message : String(error)
   }
   slider.oninput = (): void => {
@@ -119,7 +146,7 @@ export const mountPlayer = async (container: HTMLElement, { source, workerUrl }:
       return
     }
     playing = true
-    play.textContent = 'Pause'
+    updatePlayButton(true)
     const origin = performance.now() - (position >= duration ? 0 : position)
     const tick = async (): Promise<void> => {
       if (!playing || disposed) return

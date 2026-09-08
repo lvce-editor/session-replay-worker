@@ -30,6 +30,8 @@ test('the built package contains runnable exports without monorepo files', async
     'dist/api/index.js',
     'dist/api/player.d.ts',
     'dist/api/player.js',
+    'dist/api/playerStyles.d.ts',
+    'dist/api/playerStyles.js',
     'dist/api/transfer.d.ts',
     'dist/api/transfer.js',
     'dist/api/types.d.ts',
