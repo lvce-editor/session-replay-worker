@@ -26,7 +26,7 @@ for (const prefix of ['/icons/', '/static/0123456789abcdef/icons/', 'file:///opt
         workerUrl: '/dist/sessionReplayWorkerMain.js',
       })
     }, prefix)
-    const replay = page.frameLocator('iframe')
+    const replay = page.locator('.SessionReplaySurface')
     for (const position of ['0', '1000', '0']) {
       await page.getByRole('slider').fill(position)
       await expect.poll(() => replay.locator('.TitleBarIconIcon').evaluate((node: HTMLImageElement) => node.naturalWidth)).toBe(16)
@@ -61,6 +61,6 @@ test('configured replay assets do not allow unrelated recorded network requests'
     })
   })
   await page.getByRole('slider').fill('0')
-  await expect(page.frameLocator('iframe').locator('img')).not.toHaveAttribute('src')
+  await expect(page.locator('.SessionReplaySurface').locator('img')).not.toHaveAttribute('src')
   expect(requests).toEqual([])
 })

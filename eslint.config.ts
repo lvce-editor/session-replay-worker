@@ -33,7 +33,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['packages/session-replay-worker/src/parts/{Capture,Player}/*.ts'],
+    files: ['packages/session-replay-worker/src/parts/{Capture,ReplayDom}/*.ts'],
     rules: {
       // The existing HTML/SVG allowlist has many literal alternatives.
       'sonarjs/regex-complexity': ['error', { threshold: 35 }],

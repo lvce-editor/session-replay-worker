@@ -1,11 +1,11 @@
-import type { FrameLocator, Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { test, expect } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await page.waitForFunction(() => window.api)
 })
-const roundTrip = async (page: Page, change?: () => void): Promise<FrameLocator> => {
+const roundTrip = async (page: Page, change?: () => void): Promise<Locator> => {
   if (change) await page.evaluate(change)
   await page.evaluate(async () => {
     const client = window.api.createClient('/dist/sessionReplayWorkerMain.js')
@@ -17,7 +17,7 @@ const roundTrip = async (page: Page, change?: () => void): Promise<FrameLocator>
     client.dispose()
     await window.api.mountPlayer(document.body, { source: { localId: id }, workerUrl: '/dist/sessionReplayWorkerMain.js' })
   })
-  return page.frameLocator('iframe')
+  return page.locator('.SessionReplaySurface')
 }
 
 test('replays the assembled explorer and editor DOM using only the replay worker', async ({ page }) => {
@@ -100,7 +100,7 @@ test('local recordings survive page reload', async ({ page }) => {
     async (localId) => window.api.mountPlayer(document.body, { source: { localId }, workerUrl: '/dist/sessionReplayWorkerMain.js' }),
     id,
   )
-  await expect(page.frameLocator('iframe').locator('.Editor')).toContainText('const answer')
+  await expect(page.locator('.SessionReplaySurface').locator('.Editor')).toContainText('const answer')
 })
 
 const timeline = async (page: Page): Promise<void> =>
@@ -128,17 +128,17 @@ test('dragging the progress bar seeks forward and backward across removals', asy
   await timeline(page)
   const slider = page.getByRole('slider')
   await slider.fill('1200')
-  await expect(page.frameLocator('iframe').locator('.Editor')).toHaveText('edited after typing')
-  await expect(page.frameLocator('iframe').locator('.Explorer')).toHaveCount(0)
+  await expect(page.locator('.SessionReplaySurface').locator('.Editor')).toHaveText('edited after typing')
+  await expect(page.locator('.SessionReplaySurface').locator('.Explorer')).toHaveCount(0)
   await slider.fill('0')
-  await expect(page.frameLocator('iframe').locator('.Explorer')).toContainText('hello.js')
-  await expect(page.frameLocator('iframe').locator('.Editor')).toContainText('const answer')
+  await expect(page.locator('.SessionReplaySurface').locator('.Explorer')).toContainText('hello.js')
+  await expect(page.locator('.SessionReplaySurface').locator('.Editor')).toContainText('const answer')
 })
 
 test('play advances in time and stops at the end', async ({ page }) => {
   await timeline(page)
   await page.getByRole('button', { exact: true, name: 'Play' }).click()
-  await expect(page.frameLocator('iframe').locator('.Editor')).toHaveText('edited after typing')
+  await expect(page.locator('.SessionReplaySurface').locator('.Editor')).toHaveText('edited after typing')
   await expect(page.getByRole('button', { exact: true, name: 'Play' })).toBeVisible()
   await expect(page.getByRole('slider')).toHaveValue('1500')
 })
@@ -152,7 +152,7 @@ test('local file JSON can be replayed without its original workers', async ({ pa
     async (session) => window.api.mountPlayer(document.body, { source: { session }, workerUrl: '/dist/sessionReplayWorkerMain.js' }),
     session,
   )
-  await expect(page.frameLocator('iframe').locator('.Editor')).toContainText('const answer')
+  await expect(page.locator('.SessionReplaySurface').locator('.Editor')).toContainText('const answer')
 })
 
 test('captures DOM mutations and CSSOM updates while recording', async ({ page }) => {
@@ -194,7 +194,7 @@ test('captures DOM mutations and CSSOM updates while recording', async ({ page }
     await window.api.mountPlayer(document.body, { source: { session }, workerUrl: '/dist/sessionReplayWorkerMain.js' })
   })
   await page.getByRole('slider').fill((await page.getByRole('slider').getAttribute('max'))!)
-  await expect(page.frameLocator('iframe').locator('.Editor')).toHaveCSS('color', 'rgb(255, 0, 0)')
+  await expect(page.locator('.SessionReplaySurface').locator('.Editor')).toHaveCSS('color', 'rgb(255, 0, 0)')
 })
 
 test('malicious imported commands, event handlers and resource URLs never execute', async ({ page }) => {
@@ -230,7 +230,7 @@ test('malicious imported commands, event handlers and resource URLs never execut
     }
     await window.api.mountPlayer(document.body, { source: { session }, workerUrl: '/dist/sessionReplayWorkerMain.js' })
   })
-  await expect(page.frameLocator('iframe').locator('script, iframe, [onclick], [onerror], [href], [src]')).toHaveCount(0)
+  await expect(page.locator('.SessionReplaySurface').locator('script, iframe, [onclick], [onerror], [href], [src]')).toHaveCount(0)
   expect(await page.evaluate(() => window.hacked)).toBeUndefined()
   expect(requests).toEqual([])
 })
@@ -352,10 +352,10 @@ test('records transferred worker ports and replays virtual DOM commands without 
   expect(result.afterStop).toEqual({ method: 'still-forwarding' })
   const slider = page.getByRole('slider')
   await slider.fill((await slider.getAttribute('max')) || '0')
-  await expect(page.frameLocator('iframe').locator('.Editor')).toHaveText('committed edit')
-  await expect(page.frameLocator('iframe').locator('.Editor')).toHaveCSS('color', 'rgb(10, 20, 30)')
+  await expect(page.locator('.SessionReplaySurface').locator('.Editor')).toHaveText('committed edit')
+  await expect(page.locator('.SessionReplaySurface').locator('.Editor')).toHaveCSS('color', 'rgb(10, 20, 30)')
   await slider.fill(String(Math.floor(result.before)))
-  await expect(page.frameLocator('iframe').locator('.Editor')).toHaveText('message recorded')
+  await expect(page.locator('.SessionReplaySurface').locator('.Editor')).toHaveText('message recorded')
 })
 
 test('replay icon button supports keyboard play, pause and seeking', async ({ page }) => {

@@ -47,6 +47,15 @@ manifest.exports = {
   './worker': './dist/sessionReplayWorkerMain.js',
 }
 execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(worker, 'tsconfig.build.json')], { stdio: 'inherit' })
+// Bundle the CSS parser so the API also works through native browser module imports.
+await build({
+  entryPoints: [join(worker, 'src/parts/ReplayCss/ReplayCss.ts')],
+  outfile: join(dist, 'dist/parts/ReplayCss/ReplayCss.js'),
+  bundle: true,
+  format: 'esm',
+  platform: 'browser',
+  target: 'es2022',
+})
 // TypeScript rewrites runtime imports but retains .ts specifiers in declarations.
 const parts = join(dist, 'dist/parts')
 for (const name of await readdir(parts, { recursive: true })) {

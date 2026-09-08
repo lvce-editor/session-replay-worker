@@ -71,3 +71,7 @@ When hosting recordings from another editor build, pass `assetBaseUrl` to
 asset paths to this same-origin directory, including old commit prefixes and
 Electron file URLs. Other recorded network resources remain blocked. Without
 this option, playback continues to permit only embedded image and font data.
+
+Playback renders the recorded body in an inert shadow root, without an iframe or recorded head markup. Successive virtual trees are reconciled in place: unchanged frames do not mutate the replay DOM, and elements with an `id` or `data-uid` retain their identity across sibling insertions and removals. CSS uses adopted stylesheets that are replaced only when their content changes. Document theme classes and variables are applied to a synthetic root inside the replay. Imported CSS is filtered before adoption, and supported icon URLs are remapped only to the configured asset directory.
+
+`renderFrame(documentOrShadowRoot, frame, assetBaseUrl?)` retains rendering state per target. Passing a document mounts a replay surface in its body; passing a shadow root renders into that root.
