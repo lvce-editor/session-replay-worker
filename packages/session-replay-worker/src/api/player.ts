@@ -1,4 +1,5 @@
 import type { Frame, PlayerOptions, ReplayNode, SeekResult } from './types.ts'
+import { createActivityChart } from './activityChart.ts'
 import { resolveAssetUrl, rewriteAssetUrls } from './assetUrls.ts'
 import { createClient } from './client.ts'
 import { playerStyles } from './playerStyles.ts'
@@ -118,7 +119,8 @@ export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source
   status.className = 'SessionReplayTime'
   // Playback updates frequently; announce the position only when the slider is used.
   status.setAttribute('aria-live', 'off')
-  controls.append(play, slider, status)
+  const activity = createActivityChart(document)
+  controls.append(play, activity.element, slider, status)
   container.append(style, viewport, controls)
   let disposed = false
   let playing = false
@@ -128,6 +130,7 @@ export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source
   let duration = 0
   const show = (result: SeekResult): void => {
     ;({ duration, position } = result)
+    activity.setPosition(duration > 0 ? position / duration : 0)
     slider.max = String(Math.ceil(duration))
     slider.value = String(Math.round(position))
     slider.style.setProperty('--replay-progress', `${duration > 0 ? (position / duration) * 100 : 0}%`)
@@ -159,6 +162,14 @@ export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source
     pause()
     void seek(Number(slider.value)).catch(report)
   }
+  activity.element.onclick = (event): void => {
+    const bounds = activity.element.getBoundingClientRect()
+    if (!bounds.width || slider.disabled) return
+    pause()
+    slider.focus()
+    const fraction = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
+    void seek(fraction * duration).catch(report)
+  }
   play.onclick = (): void => {
     if (playing) {
       pause()
@@ -184,6 +195,7 @@ export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source
   }
   try {
     const [initial] = await Promise.all([client.invoke('load', source), loaded])
+    activity.setActivity(initial.activity)
     show(initial)
   } catch (error) {
     play.disabled = slider.disabled = true

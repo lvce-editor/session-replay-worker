@@ -58,7 +58,7 @@ const commands: WorkerCommands = {
       session = await response.json()
     } else ({ session } = source)
     content = loadContent(session)
-    return content.seek(0)
+    return { ...content.seek(0), activity: content.activity }
   },
   proxy: (port) => proxies.create(port),
   record: (...params) => recorder.record(...params),
