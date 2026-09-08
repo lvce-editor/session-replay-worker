@@ -75,7 +75,7 @@ test('recordings without a complete workbench retain their original timeline', (
 })
 
 test('an already painted workbench starts immediately', () => {
-  const frame = loadContent({ events: startup(), version: 1 }).seek(0).frame
+  const { frame } = loadContent({ events: startup(), version: 1 }).seek(0)
   const content = loadContent({
     events: [
       { data: frame, sequence: 0, timestamp: 0, type: 'frame' },
