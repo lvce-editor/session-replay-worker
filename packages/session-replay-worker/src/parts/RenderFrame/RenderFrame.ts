@@ -1,8 +1,14 @@
 import type { Frame } from '../Types/Types.ts'
 import { replayCss } from '../ReplayCss/ReplayCss.ts'
 import { createDomRenderer, normalizeDom } from '../ReplayDom/ReplayDom.ts'
+import { createReplayFonts } from '../ReplayFonts/ReplayFonts.ts'
 
-const renderers = new WeakMap<Document | ShadowRoot, (frame: Frame, assetBaseUrl?: string) => void>()
+interface FrameRenderer {
+  dispose: () => void
+  render: (frame: Frame, assetBaseUrl?: string) => void
+}
+
+const renderers = new WeakMap<Document | ShadowRoot, FrameRenderer>()
 
 export const createReplayRoot = (document: Document): HTMLElement => {
   const host = document.createElement('div')
@@ -13,7 +19,7 @@ export const createReplayRoot = (document: Document): HTMLElement => {
   return host
 }
 
-const createRenderer = (target: Document | ShadowRoot): ((frame: Frame, assetBaseUrl?: string) => void) => {
+const createRenderer = (target: Document | ShadowRoot): FrameRenderer => {
   let shadow: ShadowRoot
   const document = target.nodeType === 9 ? (target as Document) : target.ownerDocument!
   if (target.nodeType === 9) {
@@ -27,11 +33,12 @@ const createRenderer = (target: Document | ShadowRoot): ((frame: Frame, assetBas
   const reset = new Sheet()
   reset.replaceSync('html { all: initial; display: block; width: 100%; height: 100%; }')
   shadow.adoptedStyleSheets = [reset]
+  const fonts = createReplayFonts(document)
   const render = createDomRenderer(root)
   let previousStyles: string[] = []
   let previousBase: string | undefined
   let previousTheme = ''
-  return (frame, assetBaseUrl) => {
+  const update = (frame: Frame, assetBaseUrl?: string): void => {
     const dom = normalizeDom(frame.dom, assetBaseUrl)
     const styles = (frame.styles || []).filter((value) => typeof value === 'string')
     if (previousBase !== assetBaseUrl || styles.length !== previousStyles.length || styles.some((css, index) => css !== previousStyles[index])) {
@@ -42,6 +49,7 @@ const createRenderer = (target: Document | ShadowRoot): ((frame: Frame, assetBas
         sheet.replaceSync(replayCss(css, assetBaseUrl))
         return sheet
       })
+      fonts.update(sheets)
       shadow.adoptedStyleSheets = [reset, ...sheets]
       previousStyles = styles
       previousBase = assetBaseUrl
@@ -61,6 +69,12 @@ const createRenderer = (target: Document | ShadowRoot): ((frame: Frame, assetBas
     if (host.style.height !== nextHeight) host.style.height = nextHeight
     render(dom.tag === 'body' ? dom : { attrs: {}, checked: false, children: [dom], scroll: [0, 0], tag: 'body', value: '' })
   }
+  return { dispose: fonts.dispose, render: update }
+}
+
+export const disposeFrame = (target: Document | ShadowRoot): void => {
+  renderers.get(target)?.dispose()
+  renderers.delete(target)
 }
 
 export const renderFrame = (target: Document | ShadowRoot, frame: Frame, assetBaseUrl?: string): void => {
@@ -69,5 +83,5 @@ export const renderFrame = (target: Document | ShadowRoot, frame: Frame, assetBa
     render = createRenderer(target)
     renderers.set(target, render)
   }
-  render(frame, assetBaseUrl)
+  render.render(frame, assetBaseUrl)
 }

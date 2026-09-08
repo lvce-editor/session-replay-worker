@@ -1,7 +1,7 @@
 import type { PlayerOptions, SeekResult } from '../Types/Types.ts'
 import { createClient } from '../Client/Client.ts'
 import { playerStyles } from '../PlayerStyles/PlayerStyles.ts'
-import { createReplayRoot, renderFrame } from '../RenderFrame/RenderFrame.ts'
+import { createReplayRoot, disposeFrame, renderFrame } from '../RenderFrame/RenderFrame.ts'
 export { renderFrame } from '../RenderFrame/RenderFrame.ts'
 
 export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source, workerUrl }: PlayerOptions): Promise<() => void> => {
@@ -135,6 +135,7 @@ export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source
     disposed = true
     pause()
     client.dispose()
+    disposeFrame(surface.shadowRoot!)
     container.replaceChildren()
   }
 }

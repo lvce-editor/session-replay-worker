@@ -147,3 +147,36 @@ test('escaped CSS URLs and string image sources cannot request external resource
   await expect(page.locator('.SessionReplaySurface div')).toHaveCSS('background-image', 'none')
   expect(requests).toEqual([])
 })
+
+test('loads recorded fonts from the configured asset directory', async ({ page }) => {
+  const requests: string[] = []
+  await page.route('**/replay-assets/fonts/test.woff2', (route) => {
+    requests.push(route.request().url())
+    return route.abort()
+  })
+  await page.evaluate(() => {
+    const frame = window.api.capture(document)
+    frame.styles = ['@font-face { font-family: ReplayTest; src:url(/fonts/test.woff2) } body { font-family: ReplayTest }']
+    window.api.renderFrame(document, frame, `${location.origin}/replay-assets/`)
+  })
+  await expect.poll(() => requests.length).toBe(1)
+})
+
+test('reuses registered fonts between frames and releases them when the player is disposed', async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const initialCount = document.fonts.size
+    const frame = window.api.capture(document)
+    frame.styles = ['@font-face { font-family: ReplayTest; src:local(Arial) } body { font-family:ReplayTest }']
+    const dispose = await window.api.mountPlayer(document.body, {
+      source: { session: { events: [{ data: frame, sequence: 0, timestamp: 0, type: 'frame' }], version: 1 } },
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
+    })
+    const loaded = document.fonts.size - initialCount
+    const shadow = document.querySelector('.SessionReplaySurface')!.shadowRoot!
+    window.api.renderFrame(shadow, structuredClone(frame))
+    const repeated = document.fonts.size - initialCount
+    dispose()
+    return { loaded, remaining: document.fonts.size - initialCount, repeated }
+  })
+  expect(result).toEqual({ loaded: 1, remaining: 0, repeated: 1 })
+})
