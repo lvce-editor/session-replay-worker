@@ -81,7 +81,7 @@ export interface ReplayClient {
 }
 
 export interface PlayerOptions {
-  /** Same-origin directory containing trusted icons, fonts and file-icons. */
+  /** Same-origin directory containing trusted icons, fonts, file-icons and extension images. */
   assetBaseUrl?: string | URL
   source: ReplaySource
   /** Enable timeline hover previews; otherwise use the saved player setting (default true). */
