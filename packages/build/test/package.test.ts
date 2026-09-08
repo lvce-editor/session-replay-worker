@@ -60,8 +60,6 @@ test('the built package contains runnable exports without monorepo files', async
     'dist/parts/ReplayCss/ReplayCss.js',
     'dist/parts/ReplayDom/ReplayDom.d.ts',
     'dist/parts/ReplayDom/ReplayDom.js',
-    'dist/parts/ReplayFonts/ReplayFonts.d.ts',
-    'dist/parts/ReplayFonts/ReplayFonts.js',
     'dist/parts/Transfer/Transfer.d.ts',
     'dist/parts/Transfer/Transfer.js',
     'dist/parts/Types/Types.d.ts',

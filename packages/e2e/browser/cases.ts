@@ -19,7 +19,7 @@ const eventually = async (condition: () => boolean): Promise<void> => {
 }
 
 const editor = (): HTMLElement => document.querySelector('.Editor')!
-const replay = (): ShadowRoot => document.querySelector('.SessionReplaySurface')!.shadowRoot!
+const replay = (): HTMLElement => document.querySelector('.SessionReplaySurface')!
 const slider = (): HTMLInputElement => document.querySelector('input[type=range]')!
 const text = (selector: string): string => replay().querySelector(selector)?.textContent || ''
 const css = (selector: string, property: string): string => {

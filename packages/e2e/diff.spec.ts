@@ -10,19 +10,21 @@ test('identical frames reuse DOM nodes and adopted sheets without mutations', as
     const frame = window.api.capture(document)
     window.api.renderFrame(document, frame)
     const host = document.querySelector('.SessionReplaySurface')!
-    const shadow = host.shadowRoot!
-    const editor = shadow.querySelector('.Editor')!
-    const sheet = shadow.adoptedStyleSheets[1]
+    const surface = host
+    const editor = surface.querySelector('.Editor')!
+    const sheet = document.adoptedStyleSheets[0]
     const observer = new MutationObserver(() => {})
     observer.observe(host, { attributes: true })
-    observer.observe(shadow, { attributes: true, characterData: true, childList: true, subtree: true })
+    observer.observe(surface, { attributes: true, characterData: true, childList: true, subtree: true })
     for (let index = 0; index < 10; index++) window.api.renderFrame(document, structuredClone(frame))
     const mutations = observer.takeRecords().length
     observer.disconnect()
-    return { mutations, sameNode: editor === shadow.querySelector('.Editor'), sameSheet: sheet === shadow.adoptedStyleSheets[1] }
+    return { mutations, sameNode: editor === surface.querySelector('.Editor'), sameSheet: sheet === document.adoptedStyleSheets[0] }
   })
   expect(result).toEqual({ mutations: 0, sameNode: true, sameSheet: true })
   await expect(page.locator('iframe')).toHaveCount(0)
+  expect(await page.locator('.SessionReplaySurface').evaluate((node) => node.shadowRoot)).toBeNull()
+  await expect(page.locator('.SessionReplaySurface html')).toHaveCount(0)
   await expect(page.locator('.SessionReplaySurface style, .SessionReplaySurface head')).toHaveCount(0)
 })
 
@@ -31,11 +33,11 @@ test('text edits patch only the text node and keyed siblings survive insertion a
     const frame = window.api.capture(document)
     frame.dom.children = [{ attrs: { id: 'editor' }, children: [{ text: 'before' }], tag: 'div' }]
     window.api.renderFrame(document, frame)
-    const shadow = document.querySelector('.SessionReplaySurface')!.shadowRoot!
-    const editor = shadow.querySelector('#editor')!
+    const surface = document.querySelector<HTMLElement>('.SessionReplaySurface')!
+    const editor = surface.querySelector('#editor')!
     const text = editor.firstChild
     const observer = new MutationObserver(() => {})
-    observer.observe(shadow, { attributes: true, characterData: true, childList: true, subtree: true })
+    observer.observe(surface, { attributes: true, characterData: true, childList: true, subtree: true })
     frame.dom.children.at(0)!.children!.at(0)!.text = 'after'
     window.api.renderFrame(document, frame)
     const edits = observer.takeRecords().map(({ type }) => type)
@@ -44,7 +46,7 @@ test('text edits patch only the text node and keyed siblings survive insertion a
     frame.dom.children.shift()
     window.api.renderFrame(document, frame)
     observer.disconnect()
-    return { edits, sameNode: editor === shadow.querySelector('#editor'), sameText: text === editor.firstChild, text: text?.textContent }
+    return { edits, sameNode: editor === surface.querySelector('#editor'), sameText: text === editor.firstChild, text: text?.textContent }
   })
   expect(result).toEqual({ edits: ['characterData'], sameNode: true, sameText: true, text: 'after' })
 })
@@ -73,11 +75,11 @@ test('seeking backwards resets attributes, form properties, scroll and namespace
     after.dom.children![2].scroll = [0, 100]
     after.dom.children![3].svg = true
     window.api.renderFrame(document, frame)
-    const shadow = document.querySelector('.SessionReplaySurface')!.shadowRoot!
-    const input = shadow.querySelector('input')!
-    const select = shadow.querySelector('select')!
+    const surface = document.querySelector<HTMLElement>('.SessionReplaySurface')!
+    const input = surface.querySelector('input')!
+    const select = surface.querySelector('select')!
     window.api.renderFrame(document, after)
-    const changed = [input.checked, select.value, shadow.querySelector('#scroll')!.scrollTop, shadow.querySelector('#namespace')!.namespaceURI]
+    const changed = [input.checked, select.value, surface.querySelector('#scroll')!.scrollTop, surface.querySelector('#namespace')!.namespaceURI]
     window.api.renderFrame(document, frame)
     return {
       changed,
@@ -85,10 +87,10 @@ test('seeking backwards resets attributes, form properties, scroll and namespace
         input.checked,
         input.hasAttribute('title'),
         select.value,
-        shadow.querySelector('#scroll')!.scrollTop,
-        shadow.querySelector('#namespace')!.namespaceURI,
+        surface.querySelector('#scroll')!.scrollTop,
+        surface.querySelector('#namespace')!.namespaceURI,
       ],
-      sameInput: input === shadow.querySelector('input'),
+      sameInput: input === surface.querySelector('input'),
     }
   })
   expect(result).toEqual({
@@ -98,30 +100,35 @@ test('seeking backwards resets attributes, form properties, scroll and namespace
   })
 })
 
-test('adopted stylesheet updates preserve other sheets and stay inside the replay', async ({ page }) => {
+test('adopts ordinary document CSS and preserves unrelated stylesheets across updates', async ({ page }) => {
   const result = await page.evaluate(() => {
+    const existing = new CSSStyleSheet()
+    existing.replaceSync(':root { --host-marker: preserved }')
+    document.adoptedStyleSheets = [existing]
     const frame = window.api.capture(document)
     frame.styles = [':root { --replay-color: rgb(1, 2, 3) }', 'body { color: var(--replay-color) }']
     window.api.renderFrame(document, frame)
-    const shadow = document.querySelector('.SessionReplaySurface')!.shadowRoot!
-    const body = shadow.querySelector('body')!
-    const sheets = [...shadow.adoptedStyleSheets]
+    const body = document.querySelector('.SessionReplaySurface body')!
+    const sheets = [...document.adoptedStyleSheets]
     const before = getComputedStyle(body).color
     frame.styles[0] = ':root { --replay-color: rgb(4, 5, 6) }'
     window.api.renderFrame(document, frame)
     const after = getComputedStyle(body).color
-    const retained = shadow.adoptedStyleSheets[2] === sheets[2]
-    const replaced = shadow.adoptedStyleSheets[1] !== sheets[1]
+    const shared = getComputedStyle(document.body).color
+    const retained = document.adoptedStyleSheets[2] === sheets[2]
+    const replaced = document.adoptedStyleSheets[1] !== sheets[1]
     frame.styles = []
     window.api.renderFrame(document, frame)
-    return { after, before, count: shadow.adoptedStyleSheets.length, hostColor: getComputedStyle(document.body).color, replaced, retained }
+    return {
+      after,
+      before,
+      preserved: document.adoptedStyleSheets.length === 1 && document.adoptedStyleSheets[0] === existing,
+      replaced,
+      retained,
+      shared,
+    }
   })
-  expect(result.before).toBe('rgb(1, 2, 3)')
-  expect(result.after).toBe('rgb(4, 5, 6)')
-  expect(result.hostColor).not.toBe('rgb(4, 5, 6)')
-  expect(result.count).toBe(1)
-  expect(result.retained).toBe(true)
-  expect(result.replaced).toBe(true)
+  expect(result).toEqual({ after: 'rgb(4, 5, 6)', before: 'rgb(1, 2, 3)', preserved: true, replaced: true, retained: true, shared: 'rgb(4, 5, 6)' })
 })
 
 test('escaped CSS URLs and string image sources cannot request external resources', async ({ page }) => {
@@ -162,7 +169,7 @@ test('loads recorded fonts from the configured asset directory', async ({ page }
   await expect.poll(() => requests.length).toBe(1)
 })
 
-test('reuses registered fonts between frames and releases them when the player is disposed', async ({ page }) => {
+test('reuses CSS font faces between frames and releases replay sheets when disposed', async ({ page }) => {
   const result = await page.evaluate(async () => {
     const initialCount = document.fonts.size
     const frame = window.api.capture(document)
@@ -172,11 +179,62 @@ test('reuses registered fonts between frames and releases them when the player i
       workerUrl: '/dist/sessionReplayWorkerMain.js',
     })
     const loaded = document.fonts.size - initialCount
-    const shadow = document.querySelector('.SessionReplaySurface')!.shadowRoot!
-    window.api.renderFrame(shadow, structuredClone(frame))
+    const surface = document.querySelector<HTMLElement>('.SessionReplaySurface')!
+    window.api.renderFrame(surface, structuredClone(frame))
     const repeated = document.fonts.size - initialCount
     dispose()
     return { loaded, remaining: document.fonts.size - initialCount, repeated }
   })
   expect(result).toEqual({ loaded: 1, remaining: 0, repeated: 1 })
+})
+
+test('normal root and body CSS preserve replay layout and usable controls', async ({ page }) => {
+  await page.evaluate(async () => {
+    const frame = window.api.capture(document)
+    frame.documentElement = { className: 'RecordedTheme', style: '--editor-color: rgb(12, 34, 56)' }
+    frame.styles = [
+      ':root.RecordedTheme { --workspace-height: 100% } html, body { margin:0; height:100% } body > .Workspace { height:var(--workspace-height); color:var(--editor-color) } button, input { padding:20px; border:10px solid red }',
+    ]
+    await window.api.mountPlayer(document.body, {
+      source: { session: { events: [{ data: frame, sequence: 0, timestamp: 0, type: 'frame' }], version: 1 } },
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
+    })
+  })
+  await expect(page.locator('html')).toHaveCount(1)
+  await expect(page.locator('html')).toHaveClass('RecordedTheme')
+  await expect(page.locator('.SessionReplaySurface .Workspace')).toHaveCSS('height', '720px')
+  await expect(page.locator('.SessionReplaySurface .Workspace')).toHaveCSS('color', 'rgb(12, 34, 56)')
+  const controls = page.getByRole('group', { name: 'Session replay controls' })
+  await expect(controls.getByRole('button')).toHaveCSS('padding', '0px')
+  await expect(controls.getByRole('slider')).toHaveCSS('border-width', '0px')
+  await controls.getByRole('button', { exact: true, name: 'Play' }).click()
+  await expect(controls.getByRole('slider')).toBeEnabled()
+  await expect(controls.locator('output')).toHaveText('0.0 / 0.0 s')
+})
+
+test('disposing replay restores the page theme and preserves stylesheets added by the page', async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    document.documentElement.className = 'PageTheme'
+    document.documentElement.style.setProperty('--page-color', 'red')
+    const originalStyle = document.documentElement.style.cssText
+    const existing = new CSSStyleSheet()
+    existing.replaceSync('body { color:red }')
+    document.adoptedStyleSheets = [existing]
+    const frame = window.api.capture(document)
+    frame.documentElement = { className: 'RecordedTheme', style: '--page-color: blue' }
+    frame.styles = ['body { color:blue }']
+    const dispose = await window.api.mountPlayer(document.body, {
+      source: { session: { events: [{ data: frame, sequence: 0, timestamp: 0, type: 'frame' }], version: 1 } },
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
+    })
+    const added = new CSSStyleSheet()
+    document.adoptedStyleSheets.push(added)
+    dispose()
+    return {
+      className: document.documentElement.className,
+      restored: document.documentElement.style.cssText === originalStyle,
+      sheets: document.adoptedStyleSheets.length === 2 && document.adoptedStyleSheets[0] === existing && document.adoptedStyleSheets[1] === added,
+    }
+  })
+  expect(result).toEqual({ className: 'PageTheme', restored: true, sheets: true })
 })

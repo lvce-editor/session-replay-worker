@@ -1,8 +1,10 @@
 import { expect, test } from '@jest/globals'
 import { replayCss } from '../src/parts/ReplayCss/ReplayCss.ts'
 
-test('maps root selectors, preserves theme variables and filters host selectors', () => {
-  expect(replayCss(':root { --color: red } body { color: var(--color) } :host { display:none }')).toBe('html{--color:red}body{color:var(--color)}')
+test('preserves ordinary document selectors and theme variables', () => {
+  expect(replayCss(':root { --color: red } body { color: var(--color) } :host { display:none }')).toBe(
+    ':root{--color:red}body{color:var(--color)}:host{display:none}',
+  )
 })
 
 test('removes resource imports and unsafe URLs including escaped and custom-property sources', () => {
@@ -19,6 +21,6 @@ test('remaps trusted assets inside CSS and preserves safe inline raster images',
 })
 
 test('retains nested CSS rules and discards unsupported raw syntax', () => {
-  expect(replayCss('@media (min-width:1px) { :root { color:red } }')).toBe('@media (min-width:1px){html{color:red}}')
+  expect(replayCss('@media (min-width:1px) { :root { color:red } }')).toBe('@media (min-width:1px){:root{color:red}}')
   expect(replayCss('div { color: red; broken }')).not.toContain('broken')
 })
