@@ -20,7 +20,7 @@ export interface Patch {
 }
 
 const element = (tag = 'div'): ReplayNode => ({ attrs: {}, children: [], tag })
-const styleKeys = new Set(['width', 'height', 'top', 'left', 'translate', 'marginTop', 'paddingLeft', 'paddingRight'])
+const styleKeys = ['width', 'height', 'top', 'left', 'translate', 'marginTop', 'paddingLeft', 'paddingRight']
 const attributes: Record<string, string> = { className: 'class', htmlFor: 'for', inputType: 'type' }
 const setStyle = (node: ReplayNode, key: string, value: unknown): void => {
   node.attrs ||= {}
@@ -46,7 +46,7 @@ const property = (node: ReplayNode | undefined, key: string, value: unknown): vo
     default:
       break
   }
-  if (styleKeys.has(key)) {
+  if (styleKeys.includes(key)) {
     setStyle(
       node,
       key.replaceAll(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`),
@@ -100,9 +100,9 @@ export const createVisualDom = (): {
   property: typeof property
   render: (nodes: readonly VirtualNode[]) => ReplayNode[]
   replace: (node: ReplayNode, next: ReplayNode) => ReplayNode
-  views: Map<number, ReplayNode>
+  views: Record<number, ReplayNode | undefined>
 } => {
-  const views = new Map<number, ReplayNode>()
+  const views: Record<number, ReplayNode | undefined> = Object.create(null)
   const parents = new WeakMap<ReplayNode, ReplayNode>()
   const owners = new WeakMap<ReplayNode, number>()
   let nodeCount = 0
@@ -135,14 +135,14 @@ export const createVisualDom = (): {
     if (parent) append(parent, next, index)
     const uid = owners.get(node)
     if (uid !== undefined) {
-      views.set(uid, next)
+      views[uid] = next
       owners.set(next, uid)
     }
     return next
   }
   const renderNode = (value: VirtualNode): ReplayNode => {
     let node: ReplayNode
-    if (value.type === VirtualDomElements.Reference) node = views.get(value.uid!) || { text: 'Reference node not found' }
+    if (value.type === VirtualDomElements.Reference) node = views[value.uid!] || { text: 'Reference node not found' }
     else if (value.type === VirtualDomElements.Text) node = { text: value.text }
     else {
       node = element(ElementTagMap.getElementTag(value.type))
@@ -171,7 +171,7 @@ export const createVisualDom = (): {
   }
   const patch = (uid: number, input: readonly Patch[]): void => {
     const patches = expandPatches(input)
-    let current = views.get(uid)
+    let current = views[uid]
     if (!current) return
     owners.set(current, uid)
     const mutations: Record<number, (node: ReplayNode, value: Patch) => ReplayNode | undefined> = {
@@ -181,7 +181,7 @@ export const createVisualDom = (): {
       },
       10: (node, value) => parents.get(node)?.children?.[value.index],
       11: (node, value) => {
-        const next = views.get(value.uid)
+        const next = views[value.uid]
         return next ? replace(node, next) : node
       },
       2: (node, value) => {

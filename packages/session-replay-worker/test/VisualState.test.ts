@@ -168,3 +168,42 @@ test('compact navigation can append a referenced view through a placeholder', ()
   )
   expect(content.seek(700).frame.dom.children?.[0].children?.[0].children).toEqual([{ text: 'before' }])
 })
+
+test('preserves stylesheet insertion order and distinct numeric, string and prototype-like ids', () => {
+  const content = loadContent(
+    session([
+      message('Css.addCssStyleSheet', 20, 'first'),
+      message('Css.addCssStyleSheet', 3, 'second'),
+      message('Css.addCssStyleSheet', '20', 'string'),
+      message('Css.addCssStyleSheet', '__proto__', 'prototype'),
+      message('Css.addCssStyleSheet', 20, 'updated'),
+      message('Css.removeCssStyleSheet', 3),
+      message('Css.addCssStyleSheet', 3, 'reinserted'),
+      message('Viewlet.patchCss', '__proto__', 0, 5, 'safe-'),
+    ]),
+  )
+  expect(content.seek(500).frame.styles).toEqual(['updated', 'second', 'string', 'prototype'])
+  expect(content.seek(800).frame.styles).toEqual(['updated', 'string', 'safe-type', 'reinserted'])
+})
+
+test('commits transactions in arrival order even when transaction ids decrease', () => {
+  const queued: ProxyMessage[] = [90, 2].flatMap((transaction, index) => [
+    {
+      connection: 2,
+      direction: 'to-renderer' as const,
+      label: 'direct',
+      message: { id: index, method: 'Viewlet.queueCommands', params: [1, [['Viewlet.setDom2', 1, dom(String(transaction))]]] },
+      renderer: true,
+    },
+    {
+      connection: 2,
+      direction: 'from-renderer' as const,
+      label: 'direct',
+      message: { id: index, result: transaction },
+      renderer: true,
+    },
+  ])
+  const content = loadContent(session([...setup, ...queued, message('Viewlet.commitPending', 1, 2), message('Viewlet.commitPending', 1, 90)]))
+  expect(content.seek(800).frame.dom.children?.[0].children).toEqual([{ text: 'before' }])
+  expect(content.seek(900).frame.dom.children?.[0].children).toEqual([{ text: '2' }])
+})

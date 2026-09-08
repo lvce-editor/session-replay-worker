@@ -3,11 +3,10 @@ import { resolveAssetUrl, rewriteAssetUrls } from '../AssetUrls/AssetUrls.ts'
 import { createClient } from '../Client/Client.ts'
 import { playerStyles } from '../PlayerStyles/PlayerStyles.ts'
 
-const tags = new Set(
+const tags =
   'body div span p pre code main section article header footer nav aside h1 h2 h3 h4 h5 h6 ul ol li table thead tbody tr td th button input textarea select option label form fieldset legend a img br hr strong em b i u s small details summary svg path rect circle ellipse line polyline polygon g defs clipPath text tspan'.split(
     ' ',
-  ),
-)
+  )
 // The allowlist covers HTML, SVG and accessibility attributes.
 const attributes =
   /^(class|style|id|title|role|type|checked|disabled|selected|placeholder|width|height|viewBox|d|fill|stroke|cx|cy|r|x|y|x1|x2|y1|y2|points|transform|xmlns|data-[\w-]+|aria-[\w-]+)$/i
@@ -20,7 +19,7 @@ export const renderFrame = (document: Document, frame: Frame, assetBaseUrl?: str
   const visit = (value: ReplayNode, depth = 0): Node => {
     if (++count > 100_000 || depth > 150 || !value || typeof value !== 'object') throw new Error('Invalid replay DOM')
     if (typeof value.text === 'string') return document.createTextNode(value.text)
-    const tag = value.tag && tags.has(value.tag) ? value.tag : 'div'
+    const tag = value.tag && tags.includes(value.tag) ? value.tag : 'div'
     const node = value.svg ? document.createElementNS('http://www.w3.org/2000/svg', tag) : document.createElement(tag)
     const entries = Object.entries(value.attrs || {})
     for (const [key, val] of entries) {
