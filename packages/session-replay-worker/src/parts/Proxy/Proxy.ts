@@ -1,4 +1,4 @@
-import { getTransferrables } from './api/transfer.ts'
+import { getTransferrables } from '../Transfer/Transfer.ts'
 
 export interface RpcMessage {
   error?: unknown

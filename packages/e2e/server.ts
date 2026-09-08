@@ -14,7 +14,7 @@ const fixture = await build({
     {
       name: 'api-path',
       setup(build): void {
-        build.onResolve({ filter: /api\/index\.ts$/ }, () => ({ external: true, path: '/dist/api/index.js' }))
+        build.onResolve({ filter: /Api\/Api\.ts$/ }, () => ({ external: true, path: '/dist/api/index.js' }))
       },
     },
   ],

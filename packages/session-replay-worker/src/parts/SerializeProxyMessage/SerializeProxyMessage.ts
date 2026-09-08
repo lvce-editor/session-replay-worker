@@ -1,4 +1,4 @@
-import { serializeMessage } from './api/capture.ts'
+import { serializeMessage } from '../Capture/Capture.ts'
 
 const redacted = '[redacted]'
 const isMasked = (node: Record<string, unknown>): boolean =>
