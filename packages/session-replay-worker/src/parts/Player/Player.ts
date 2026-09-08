@@ -1,7 +1,7 @@
 import type { PlayerOptions, SeekResult } from '../Types/Types.ts'
 import { createClient } from '../Client/Client.ts'
-import { createReplayRoot, renderFrame } from '../RenderFrame/RenderFrame.ts'
 import { playerStyles } from '../PlayerStyles/PlayerStyles.ts'
+import { createReplayRoot, renderFrame } from '../RenderFrame/RenderFrame.ts'
 export { renderFrame } from '../RenderFrame/RenderFrame.ts'
 
 export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source, workerUrl }: PlayerOptions): Promise<() => void> => {
