@@ -1,5 +1,6 @@
 import type { ProxyMessage } from '../Proxy/Proxy.ts'
 import type { Session, SeekResult } from '../Types/Types.ts'
+import { getActivity } from '../Activity/Activity.ts'
 import { createVisualState } from '../VisualState/VisualState.ts'
 
 export const version = 1
@@ -30,7 +31,7 @@ export const validateSession = (value: unknown): Session => {
 }
 
 // Binary search makes dragging independent of the number of diagnostic messages.
-export const loadContent = (value: unknown): { duration: number; seek: (timestamp: number) => SeekResult } => {
+export const loadContent = (value: unknown): { activity: number[]; duration: number; seek: (timestamp: number) => SeekResult } => {
   const session = validateSession(value)
   const frames = session.events.filter((event) => event.type === 'frame')
   if (frames.length === 0) throw new Error('This session has no visual frames')
@@ -61,5 +62,5 @@ export const loadContent = (value: unknown): { duration: number; seek: (timestam
     }
     return { duration, frame: frames[Math.max(0, low - 1)].data, position }
   }
-  return { duration, seek }
+  return { activity: getActivity(session.events, duration), duration, seek }
 }

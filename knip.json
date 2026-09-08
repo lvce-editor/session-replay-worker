@@ -5,12 +5,12 @@
       "project": ["*.ts"]
     },
     "packages/build": {
-      "entry": ["test/**/*.test.ts", "static/main.ts"],
+      "entry": ["test/**/*.test.ts", "static/replay/main.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/e2e": {
-      "entry": ["server.ts", "fixture.ts"],
-      "project": ["*.ts"]
+      "entry": ["server.ts", "fixture.ts", "browser/main.ts", "browser/fixture.ts"],
+      "project": ["*.ts", "browser/**/*.ts"]
     },
     "packages/session-replay-worker": {
       "entry": ["test/**/*.test.ts"],

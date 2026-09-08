@@ -61,7 +61,7 @@ export type RecordParams = [type: 'frame', data: Frame] | [type: 'message', data
 export interface WorkerCommands {
   export(): Session | Promise<Session>
   flush(): Promise<void>
-  load(source: ReplaySource): Promise<SeekResult>
+  load(source: ReplaySource): Promise<SeekResult & { activity: number[] }>
   proxy(port: MessagePort): MessagePort
   record(...params: RecordParams): Promise<void>
   seek(timestamp: number): SeekResult

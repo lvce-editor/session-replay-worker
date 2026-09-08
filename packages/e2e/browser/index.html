@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Session replay tests</title>
+    <style>
+      body {
+        background: #202020;
+        color: #eee;
+        font:
+          16px system-ui,
+          sans-serif;
+        margin: 32px;
+      }
+      a {
+        color: #9cdcfe;
+      }
+      button {
+        font: inherit;
+        padding: 8px 16px;
+        margin-block: 16px;
+        cursor: pointer;
+      }
+      li {
+        padding-block: 6px;
+      }
+      [data-state='passed'] {
+        color: #a9dc76;
+      }
+      [data-state='failed'] {
+        color: #ff8989;
+      }
+      #stage {
+        overflow: auto;
+      }
+      iframe {
+        border: 1px solid #666;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Session replay tests</h1>
+    <nav><a href="../">Home</a> · <a href="../replay/">Manual replay</a> · <a href="./">All tests</a></nav>
+    <p>Run the end-to-end replay scenarios in your browser. Each test uses a fresh frame and the published replay worker.</p>
+    <button id="run-all" type="button">Run all tests</button>
+    <output id="summary" aria-live="polite"></output>
+    <ol></ol>
+    <div id="stage"></div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

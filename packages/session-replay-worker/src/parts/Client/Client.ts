@@ -3,17 +3,17 @@ import { getTransferrables } from '../Transfer/Transfer.ts'
 
 export const createClient = (url: string | URL): ReplayClient => {
   const worker = new Worker(url, { name: 'Session Replay Worker', type: 'module' })
-  const callbacks = new Map<number, { resolve: (value: unknown) => void; reject: (error: unknown) => void }>()
+  let callbacks: Record<number, { resolve: (value: unknown) => void; reject: (error: unknown) => void }> = Object.create(null)
   let nextId = 0
   let disposed = false
   const fail = (error: Error): void => {
-    for (const { reject } of callbacks.values()) reject(error)
-    callbacks.clear()
+    for (const { reject } of Object.values(callbacks)) reject(error)
+    callbacks = Object.create(null)
   }
   worker.onmessage = ({ data }: MessageEvent<{ id: number; error?: string; result?: unknown }>): void => {
-    const callback = callbacks.get(data.id)
+    const callback = callbacks[data.id]
     if (!callback) return
-    callbacks.delete(data.id)
+    delete callbacks[data.id]
     if (data.error) callback.reject(new Error(data.error))
     else callback.resolve(data.result)
   }
@@ -30,11 +30,11 @@ export const createClient = (url: string | URL): ReplayClient => {
     if (disposed) return Promise.reject(new Error('Session replay worker is closed'))
     return new Promise<Awaited<ReturnType<WorkerCommands[K]>>>((resolve, reject) => {
       const id = nextId++
-      callbacks.set(id, { reject, resolve: (value) => resolve(value as Awaited<ReturnType<WorkerCommands[K]>>) })
+      callbacks[id] = { reject, resolve: (value): void => resolve(value as Awaited<ReturnType<WorkerCommands[K]>>) }
       try {
         worker.postMessage({ id, method, params }, transfer ? getTransferrables(params) : [])
       } catch (error) {
-        callbacks.delete(id)
+        delete callbacks[id]
         reject(error instanceof Error ? error : new Error(String(error)))
       }
     })

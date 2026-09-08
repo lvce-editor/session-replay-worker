@@ -1,10 +1,11 @@
 export const playerStyles = `
 .SessionReplay > .SessionReplayControls {
   box-sizing: border-box;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   flex: none;
   align-items: center;
-  gap: 18px;
+  gap: 0 18px;
   margin: 12px 16px 16px;
   padding: 10px 16px 10px 10px;
   border: 1px solid #ffffff1f;
@@ -16,6 +17,8 @@ export const playerStyles = `
   color-scheme: dark;
 }
 .SessionReplayControls > .SessionReplayPlay {
+  grid-column: 1;
+  grid-row: 2;
   appearance: none;
   display: grid;
   place-items: center;
@@ -43,6 +46,8 @@ export const playerStyles = `
   pointer-events: none;
 }
 .SessionReplayControls > .SessionReplayPosition {
+  grid-column: 2;
+  grid-row: 2;
   appearance: none;
   box-sizing: border-box;
   flex: 1;
@@ -90,6 +95,26 @@ export const playerStyles = `
   background: #ffffff;
   box-shadow: 0 1px 5px #00000066;
 }
+.SessionReplayControls > .SessionReplayActivity {
+  grid-column: 2;
+  grid-row: 1;
+  display: block;
+  width: calc(100% - 13px);
+  min-width: 0;
+  height: 48px;
+  margin: 0 6.5px;
+  border-bottom: 1px solid #454950;
+  fill: #00adef80;
+  cursor: pointer;
+}
+.SessionReplayControls > .SessionReplayActivity:hover {
+  fill: #00adefb3;
+}
+.SessionReplayActivityCursor {
+  stroke: #ffffff;
+  stroke-width: 1;
+  pointer-events: none;
+}
 .SessionReplayControls > :focus-visible {
   outline: 2px solid #ffffff;
   outline-offset: 4px;
@@ -99,6 +124,8 @@ export const playerStyles = `
   cursor: default;
 }
 .SessionReplayControls > .SessionReplayTime {
+  grid-column: 3;
+  grid-row: 2;
   flex: none;
   font: inherit;
   font-variant-numeric: tabular-nums;
@@ -113,7 +140,7 @@ export const playerStyles = `
 }
 @media (max-width: 480px) {
   .SessionReplay > .SessionReplayControls {
-    gap: 12px;
+    column-gap: 12px;
     margin: 8px;
     padding: 8px;
     font-size: 12px;
@@ -123,6 +150,13 @@ export const playerStyles = `
   }
 }
 @media (forced-colors: active) {
+  .SessionReplayControls > .SessionReplayActivity {
+    fill: Highlight;
+    border-color: CanvasText;
+  }
+  .SessionReplayActivityCursor {
+    stroke: CanvasText;
+  }
   .SessionReplayControls > .SessionReplayPlay {
     border: 1px solid ButtonText;
     background: ButtonFace;

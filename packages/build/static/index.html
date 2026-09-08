@@ -3,25 +3,30 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Session replay</title>
+    <title>Session replay worker</title>
     <style>
       body {
         background: #202020;
-        color: white;
-        font: 16px sans-serif;
+        color: #eee;
+        font:
+          16px system-ui,
+          sans-serif;
         margin: 32px;
+      }
+      a {
+        color: #9cdcfe;
+      }
+      li {
+        margin-block: 16px;
       }
     </style>
   </head>
   <body>
-    <main>
-      <h1>Session replay</h1>
-      <p>Open a recording exported from LVCE Editor. The recording stays in your browser.</p>
-      <label for="session">Open session recording</label>
-      <input id="session" type="file" accept=".json,application/json" />
-      <p id="error" role="alert"></p>
-    </main>
-    <div id="player"></div>
-    <script type="module" src="./main.js"></script>
+    <h1>Session replay worker</h1>
+    <p>Visual session recording and playback for LVCE Editor.</p>
+    <ul>
+      <li><a href="./tests/">End-to-end tests</a> — run the replay scenarios in your browser.</li>
+      <li><a href="./replay/">Manual replay</a> — open an exported JSON recording locally.</li>
+    </ul>
   </body>
 </html>
