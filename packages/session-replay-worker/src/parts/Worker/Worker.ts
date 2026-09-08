@@ -62,6 +62,7 @@ const commands: WorkerCommands = {
     content = loadContent(session)
     return { ...content.seek(0), activity: content.activity }
   },
+  preview: (timestamp) => content.preview(timestamp),
   proxy: (port) => proxies.create(port),
   record: (...params) => recorder.record(...params),
   seek: (timestamp) => content.seek(timestamp),

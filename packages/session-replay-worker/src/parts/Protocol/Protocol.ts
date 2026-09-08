@@ -30,12 +30,12 @@ export const validateSession = (value: unknown): Session => {
   return session
 }
 
-// Binary search makes dragging independent of the number of diagnostic messages.
-export const loadContent = (value: unknown): { activity: number[]; duration: number; seek: (timestamp: number) => SeekResult } => {
-  const session = validateSession(value)
-  const frames = session.events.filter((event) => event.type === 'frame')
-  if (frames.length === 0) throw new Error('This session has no visual frames')
-  const duration = session.events.at(-1)?.timestamp || 0
+// Each cursor owns its command state while sharing the validated recording.
+const createSeek = (
+  session: Session,
+  frames: Extract<Session['events'][number], { type: 'frame' }>[],
+  duration: number,
+): ((timestamp: number) => SeekResult) => {
   let visual = createVisualState(frames[0].data)
   let eventIndex = 0
   let lastPosition = -1
@@ -62,5 +62,21 @@ export const loadContent = (value: unknown): { activity: number[]; duration: num
     }
     return { duration, frame: frames[Math.max(0, low - 1)].data, position }
   }
-  return { activity: getActivity(session.events, duration), duration, seek }
+  return seek
+}
+
+export const loadContent = (
+  value: unknown,
+): { activity: number[]; duration: number; preview: (timestamp: number) => SeekResult; seek: (timestamp: number) => SeekResult } => {
+  const session = validateSession(value)
+  const frames = session.events.filter((event) => event.type === 'frame')
+  if (frames.length === 0) throw new Error('This session has no visual frames')
+  const duration = session.events.at(-1)?.timestamp || 0
+  const seek = createSeek(session, frames, duration)
+  let previewSeek: ReturnType<typeof createSeek> | undefined
+  const preview = (timestamp: number): SeekResult => {
+    previewSeek ||= createSeek(session, frames, duration)
+    return previewSeek(timestamp)
+  }
+  return { activity: getActivity(session.events, duration), duration, preview, seek }
 }

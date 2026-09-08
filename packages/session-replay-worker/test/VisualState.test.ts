@@ -207,3 +207,25 @@ test('commits transactions in arrival order even when transaction ids decrease',
   expect(content.seek(800).frame.dom.children?.[0].children).toEqual([{ text: 'before' }])
   expect(content.seek(900).frame.dom.children?.[0].children).toEqual([{ text: '2' }])
 })
+
+test('preview cursor seeks independently while playback continues through commands', () => {
+  const content = loadContent(
+    session([
+      ...setup,
+      message('Css.addCssStyleSheet', 1, '.Editor{color:red}'),
+      message('Viewlet.setTreePatches', 1, [
+        { index: 0, type: 7 },
+        { type: 1, value: 'after' },
+      ]),
+      message('Viewlet.dispose', 1),
+    ]),
+  )
+  const playing = content.seek(300)
+  expect(content.preview(500).frame.dom.children?.[0].children).toEqual([{ text: 'after' }])
+  expect(playing.frame.dom.children?.[0].children).toEqual([{ text: 'before' }])
+  expect(content.seek(400).frame.dom.children?.[0].children).toEqual([{ text: 'before' }])
+  expect(content.preview(0).frame.dom.children).toEqual([])
+  expect(content.seek(500).frame.dom.children?.[0].children).toEqual([{ text: 'after' }])
+  expect(content.preview(600).frame.dom.children).toEqual([])
+  expect(content.seek(300).frame.dom.children?.[0].children).toEqual([{ text: 'before' }])
+})

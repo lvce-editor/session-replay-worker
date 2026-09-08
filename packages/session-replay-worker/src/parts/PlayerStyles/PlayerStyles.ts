@@ -138,6 +138,54 @@ export const playerStyles = `
   white-space: normal;
   overflow-wrap: anywhere;
 }
+.SessionReplayControls > .SessionReplayPreviewSetting {
+  grid-column: 2 / -1;
+  grid-row: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  font: inherit;
+  cursor: pointer;
+}
+.SessionReplayPreviewSetting > input {
+  accent-color: #00adef;
+}
+.SessionReplay > .SessionReplayPreview {
+  position: fixed;
+  z-index: 1;
+  padding: 4px;
+  border: 1px solid #ffffff40;
+  border-radius: 6px;
+  background: #181a1f;
+  color: #f4f4f5;
+  box-shadow: 0 4px 20px #00000080;
+  pointer-events: none;
+  font: 12px/1.4 system-ui, sans-serif;
+}
+.SessionReplayPreview[hidden] {
+  display: none;
+}
+.SessionReplayPreviewImage {
+  overflow: hidden;
+  position: relative;
+  background: white;
+}
+.SessionReplayPreviewImage > iframe {
+  display: block;
+  position: absolute;
+  inset: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  transform-origin: top left;
+  pointer-events: none;
+}
+.SessionReplayPreviewTime {
+  padding-top: 4px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
 @media (max-width: 480px) {
   .SessionReplay > .SessionReplayControls {
     column-gap: 12px;
