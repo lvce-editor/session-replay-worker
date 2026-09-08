@@ -1,5 +1,5 @@
-import type { ReplayClient, WorkerCommands } from './types.ts'
-import { getTransferrables } from './transfer.ts'
+import type { ReplayClient, WorkerCommands } from '../Types/Types.ts'
+import { getTransferrables } from '../Transfer/Transfer.ts'
 
 export const createClient = (url: string | URL): ReplayClient => {
   const worker = new Worker(url, { name: 'Session Replay Worker', type: 'module' })

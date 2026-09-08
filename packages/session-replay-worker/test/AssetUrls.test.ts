@@ -1,5 +1,5 @@
 import { expect, test } from '@jest/globals'
-import { resolveAssetUrl, rewriteAssetUrls } from '../src/api/assetUrls.ts'
+import { resolveAssetUrl, rewriteAssetUrls } from '../src/parts/AssetUrls/AssetUrls.ts'
 
 const base = 'https://lvce-editor.dev/session-replay-assets/lvce-editor/'
 

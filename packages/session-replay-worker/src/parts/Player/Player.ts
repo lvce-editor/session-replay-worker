@@ -1,7 +1,7 @@
-import type { Frame, PlayerOptions, ReplayNode, SeekResult } from './types.ts'
-import { resolveAssetUrl, rewriteAssetUrls } from './assetUrls.ts'
-import { createClient } from './client.ts'
-import { playerStyles } from './playerStyles.ts'
+import type { Frame, PlayerOptions, ReplayNode, SeekResult } from '../Types/Types.ts'
+import { resolveAssetUrl, rewriteAssetUrls } from '../AssetUrls/AssetUrls.ts'
+import { createClient } from '../Client/Client.ts'
+import { playerStyles } from '../PlayerStyles/PlayerStyles.ts'
 
 const tags = new Set(
   'body div span p pre code main section article header footer nav aside h1 h2 h3 h4 h5 h6 ul ol li table thead tbody tr td th button input textarea select option label form fieldset legend a img br hr strong em b i u s small details summary svg path rect circle ellipse line polyline polygon g defs clipPath text tspan'.split(

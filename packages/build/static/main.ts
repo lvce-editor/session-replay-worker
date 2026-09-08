@@ -1,4 +1,4 @@
-import { mountPlayer } from '../../session-replay-worker/src/api/player.ts'
+import { mountPlayer } from '../../session-replay-worker/src/parts/Player/Player.ts'
 
 const input = document.querySelector<HTMLInputElement>('#session')!
 const error = document.querySelector<HTMLElement>('#error')!

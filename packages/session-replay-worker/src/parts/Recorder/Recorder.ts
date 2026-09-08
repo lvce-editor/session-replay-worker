@@ -1,6 +1,6 @@
-import type { RecordingOptions, ReplayEvent, RecordParams, Session, SessionMetadata, WorkerCommands, RecordingStatus } from './api/types.ts'
-import type { ReplayStorage } from './storage.ts'
-import { bytes, maxEventBytes, maxSessionBytes, version } from './protocol.ts'
+import type { ReplayStorage } from '../Storage/Storage.ts'
+import type { RecordingOptions, ReplayEvent, RecordParams, Session, SessionMetadata, WorkerCommands, RecordingStatus } from '../Types/Types.ts'
+import { bytes, maxEventBytes, maxSessionBytes, version } from '../Protocol/Protocol.ts'
 
 interface RecorderDependencies {
   fetch?: typeof globalThis.fetch

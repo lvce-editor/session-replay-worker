@@ -23,7 +23,7 @@ await rm(dist, { recursive: true, force: true })
 await mkdir(dist, { recursive: true })
 await build({
   entryPoints: {
-    sessionReplayWorkerMain: join(worker, 'src/worker.ts'),
+    sessionReplayWorkerMain: join(worker, 'src/sessionReplayWorkerMain.ts'),
   },
   outdir: join(dist, 'dist'),
   bundle: true,
@@ -48,11 +48,27 @@ manifest.exports = {
 }
 execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(worker, 'tsconfig.build.json')], { stdio: 'inherit' })
 // TypeScript rewrites runtime imports but retains .ts specifiers in declarations.
-for (const name of await readdir(join(dist, 'dist/api'))) {
+const parts = join(dist, 'dist/parts')
+for (const name of await readdir(parts, { recursive: true })) {
   if (!name.endsWith('.d.ts')) continue
-  const file = join(dist, 'dist/api', name)
+  const file = join(parts, name)
   const declaration = await readFile(file, 'utf8')
   await writeFile(file, declaration.replace(/\.ts(['"])/g, '.js$1'))
+}
+await mkdir(join(dist, 'dist/api'), { recursive: true })
+for (const [name, moduleName] of [
+  ['index', 'Api'],
+  ['assetUrls', 'AssetUrls'],
+  ['capture', 'Capture'],
+  ['client', 'Client'],
+  ['player', 'Player'],
+  ['playerStyles', 'PlayerStyles'],
+  ['transfer', 'Transfer'],
+  ['types', 'Types'],
+]) {
+  for (const extension of ['js', 'd.ts']) {
+    await writeFile(join(dist, `dist/api/${name}.${extension}`), `export * from '../parts/${moduleName}/${moduleName}.js'\n`)
+  }
 }
 // Keep the existing browser asset URLs working alongside the npm subpath aliases.
 for (const name of ['capture', 'client', 'player']) {

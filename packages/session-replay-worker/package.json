@@ -8,13 +8,13 @@
     "url": "https://github.com/lvce-editor/session-replay-worker.git"
   },
   "exports": {
-    "./api": "./src/api/index.ts",
-    "./capture": "./src/api/capture.ts",
-    "./client": "./src/api/client.ts",
-    "./player": "./src/api/player.ts",
-    "./worker": "./src/worker.ts"
+    "./api": "./src/parts/Api/Api.ts",
+    "./capture": "./src/parts/Capture/Capture.ts",
+    "./client": "./src/parts/Client/Client.ts",
+    "./player": "./src/parts/Player/Player.ts",
+    "./worker": "./src/sessionReplayWorkerMain.ts"
   },
-  "main": "src/worker.ts",
+  "main": "src/sessionReplayWorkerMain.ts",
   "scripts": {
     "test": "node --unhandled-rejections=warn --experimental-vm-modules ../../node_modules/jest/bin/jest.js --detectOpenHandles --forceExit",
     "test:watch": "node --unhandled-rejections=warn --experimental-vm-modules ../../node_modules/jest/bin/jest.js --watch",

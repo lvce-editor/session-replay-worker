@@ -25,7 +25,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['packages/session-replay-worker/src/worker.ts'],
+    files: ['packages/session-replay-worker/src/parts/Worker/Worker.ts'],
     rules: {
       'unicorn/no-global-object-property-assignment': 'off',
       // This module owns the worker's state and message handler.
@@ -33,7 +33,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['packages/session-replay-worker/src/api/{capture,player}.ts'],
+    files: ['packages/session-replay-worker/src/parts/{Capture,Player}/*.ts'],
     rules: {
       // The existing HTML/SVG allowlist has many literal alternatives.
       'sonarjs/regex-complexity': ['error', { threshold: 35 }],
