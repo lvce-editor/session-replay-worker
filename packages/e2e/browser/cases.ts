@@ -19,12 +19,12 @@ const eventually = async (condition: () => boolean): Promise<void> => {
 }
 
 const editor = (): HTMLElement => document.querySelector('.Editor')!
-const replay = (): Document => document.querySelector('iframe')!.contentDocument!
+const replay = (): ShadowRoot => document.querySelector('.SessionReplaySurface')!.shadowRoot!
 const slider = (): HTMLInputElement => document.querySelector('input[type=range]')!
 const text = (selector: string): string => replay().querySelector(selector)?.textContent || ''
 const css = (selector: string, property: string): string => {
   const node = replay().querySelector(selector)!
-  return replay().defaultView!.getComputedStyle(node).getPropertyValue(property)
+  return replay().ownerDocument.defaultView!.getComputedStyle(node).getPropertyValue(property)
 }
 
 const record = async (): Promise<Session> => {

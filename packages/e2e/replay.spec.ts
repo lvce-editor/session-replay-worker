@@ -1,11 +1,11 @@
-import type { FrameLocator, Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { test, expect } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
   await page.waitForFunction(() => window.api)
 })
-const roundTrip = async (page: Page): Promise<FrameLocator> => {
+const roundTrip = async (page: Page): Promise<Locator> => {
   await page.evaluate(async () => {
     const client = window.api.createClient('/dist/sessionReplayWorkerMain.js')
     const id = await client.invoke('start', { local: true, upload: false })
@@ -16,7 +16,7 @@ const roundTrip = async (page: Page): Promise<FrameLocator> => {
     client.dispose()
     await window.api.mountPlayer(document.body, { source: { localId: id }, workerUrl: '/dist/sessionReplayWorkerMain.js' })
   })
-  return page.frameLocator('iframe')
+  return page.locator('.SessionReplaySurface')
 }
 
 test('replays the assembled explorer and editor DOM using only the replay worker', async ({ page }) => {
@@ -60,7 +60,7 @@ test('local recordings survive page reload', async ({ page }) => {
     async (localId) => window.api.mountPlayer(document.body, { source: { localId }, workerUrl: '/dist/sessionReplayWorkerMain.js' }),
     id,
   )
-  await expect(page.frameLocator('iframe').locator('.Editor')).toContainText('const answer')
+  await expect(page.locator('.SessionReplaySurface').locator('.Editor')).toContainText('const answer')
 })
 
 test('replay icon button supports keyboard play, pause and seeking', async ({ page }) => {
@@ -176,7 +176,7 @@ test('activity chart shows quiet gaps and peaks, and clicking it pauses and seek
   await expect(page.getByRole('button', { exact: true, name: 'Pause' })).toBeVisible()
   await chart.click({ position: { x: bounds.width * 0.82, y: 24 } })
   await expect(page.getByRole('button', { exact: true, name: 'Play' })).toBeVisible()
-  await expect(page.frameLocator('iframe').locator('.Editor')).toHaveText('activity near the end')
+  await expect(page.locator('.SessionReplaySurface').locator('.Editor')).toHaveText('activity near the end')
   expect(Number(await slider.inputValue())).toBeGreaterThanOrEqual(8100)
   expect(Number(await slider.inputValue())).toBeLessThan(8300)
   await expect(slider).toBeFocused()

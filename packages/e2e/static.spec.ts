@@ -23,7 +23,7 @@ test('opens an exported recording from the GitHub Pages subdirectory', async ({ 
     mimeType: 'application/json',
     name: 'session.json',
   })
-  await expect(page.frameLocator('iframe').locator('body')).toHaveText('Recorded editor')
+  await expect(page.locator('.SessionReplaySurface').locator('body')).toHaveText('Recorded editor')
   expect(workers).toEqual(['http://127.0.0.1:4317/session-replay-worker/dist/sessionReplayWorkerMain.js'])
 })
 

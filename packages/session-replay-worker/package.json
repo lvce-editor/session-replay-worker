@@ -28,7 +28,9 @@
   "devDependencies": {
     "@jest/globals": "^30.4.1",
     "@lvce-editor/constants": "^5.30.0",
+    "@types/css-tree": "^3.2.0",
     "@types/node": "^24.13.3",
+    "css-tree": "^3.2.1",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
     "typescript": "^6.0.3"
