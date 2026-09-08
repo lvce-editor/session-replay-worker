@@ -1,7 +1,7 @@
-import type { Session, SeekResult } from './api/types.ts'
-import type { ProxyMessage } from './proxy.ts'
-import { getActivity } from './activity.ts'
-import { createVisualState } from './visualState.ts'
+import type { ProxyMessage } from '../Proxy/Proxy.ts'
+import type { Session, SeekResult } from '../Types/Types.ts'
+import { getActivity } from '../Activity/Activity.ts'
+import { createVisualState } from '../VisualState/VisualState.ts'
 
 export const version = 1
 export const maxEventBytes = 750_000

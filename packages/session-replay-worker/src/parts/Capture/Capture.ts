@@ -1,4 +1,4 @@
-import type { Frame, ReplayNode } from './types.ts'
+import type { Frame, ReplayNode } from '../Types/Types.ts'
 
 const omitted = new Set(['SCRIPT', 'STYLE', 'LINK', 'META', 'BASE', 'NOSCRIPT'])
 const unsupported = new Set(['IFRAME', 'WEBVIEW', 'CANVAS', 'OBJECT', 'EMBED', 'VIDEO', 'AUDIO'])

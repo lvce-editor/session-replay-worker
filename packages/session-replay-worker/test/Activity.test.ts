@@ -1,6 +1,6 @@
 import { expect, test } from '@jest/globals'
-import type { Frame, ReplayEvent } from '../src/api/types.ts'
-import { loadContent } from '../src/protocol.ts'
+import type { Frame, ReplayEvent } from '../src/parts/Types/Types.ts'
+import { loadContent } from '../src/parts/Protocol/Protocol.ts'
 
 const frame: Frame = { dom: { tag: 'div' }, styles: [], viewport: [800, 600] }
 const initial: ReplayEvent = { data: frame, sequence: 0, timestamp: 0, type: 'frame' }

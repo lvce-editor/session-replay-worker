@@ -1,4 +1,4 @@
-import type { ReplayEvent } from './api/types.ts'
+import type { ReplayEvent } from '../Types/Types.ts'
 
 // Quarter-second buckets for short sessions, bounded for long recordings.
 export const getActivity = (events: readonly ReplayEvent[], duration: number): number[] => {

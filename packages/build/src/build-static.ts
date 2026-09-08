@@ -15,12 +15,12 @@ await build({
   format: 'esm',
   target: 'es2022',
   bundle: true,
-  external: ['../../session-replay-worker/src/api/player.ts'],
+  external: ['../../session-replay-worker/src/parts/Player/Player.ts'],
   plugins: [
     {
       name: 'api-path',
       setup(build) {
-        build.onResolve({ filter: /player\.ts$/ }, () => ({ path: './dist/api/player.js', external: true }))
+        build.onResolve({ filter: /Player\/Player\.ts$/ }, () => ({ path: './dist/api/player.js', external: true }))
       },
     },
   ],

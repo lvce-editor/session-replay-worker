@@ -1,7 +1,7 @@
 import { expect, test } from '@jest/globals'
-import type { Frame } from '../src/api/types.ts'
-import { loadContent, validateSession } from '../src/protocol.ts'
-import { createRecorder } from '../src/recorder.ts'
+import type { Frame } from '../src/parts/Types/Types.ts'
+import { loadContent, validateSession } from '../src/parts/Protocol/Protocol.ts'
+import { createRecorder } from '../src/parts/Recorder/Recorder.ts'
 
 const frame = (text: string): Frame => ({
   dom: { children: [{ text }], tag: 'div' },
