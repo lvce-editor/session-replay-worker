@@ -26,7 +26,7 @@ export const capture = (document: Document): Frame => {
     const attrs = Object.fromEntries([...node.attributes].filter(({ name }) => attributes.test(name)).map(({ name, value }) => [name, value]))
     if (node.tagName === 'IMG') {
       const image = node as HTMLImageElement
-      if (image.src.startsWith('data:image/')) attrs.src = image.src
+      attrs.src = image.src
     }
     return {
       attrs,

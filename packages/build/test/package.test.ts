@@ -22,6 +22,8 @@ test('the built package contains runnable exports without monorepo files', async
   expect(packed.files.map(({ path }: { path: string }) => path).sort()).toEqual([
     'LICENSE',
     'README.md',
+    'dist/api/assetUrls.d.ts',
+    'dist/api/assetUrls.js',
     'dist/api/capture.d.ts',
     'dist/api/capture.js',
     'dist/api/client.d.ts',
@@ -40,6 +42,8 @@ test('the built package contains runnable exports without monorepo files', async
     'dist/client.js',
     'dist/parts/Api/Api.d.ts',
     'dist/parts/Api/Api.js',
+    'dist/parts/AssetUrls/AssetUrls.d.ts',
+    'dist/parts/AssetUrls/AssetUrls.js',
     'dist/parts/Capture/Capture.d.ts',
     'dist/parts/Capture/Capture.js',
     'dist/parts/Client/Client.d.ts',

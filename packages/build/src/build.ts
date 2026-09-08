@@ -58,6 +58,7 @@ for (const name of await readdir(parts, { recursive: true })) {
 await mkdir(join(dist, 'dist/api'), { recursive: true })
 for (const [name, moduleName] of [
   ['index', 'Api'],
+  ['assetUrls', 'AssetUrls'],
   ['capture', 'Capture'],
   ['client', 'Client'],
   ['player', 'Player'],
