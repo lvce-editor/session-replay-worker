@@ -1,6 +1,6 @@
-import type { ViewRender } from '../Render/Render.ts'
-import type { TimelinePoint, ViewEvent } from '../SessionReplayState/SessionReplayState.ts'
 import type { PlayerOptions } from '../Types/Types.ts'
+import type { TimelinePoint, ViewEvent } from '../ViewEvent/ViewEvent.ts'
+import type { ViewRender } from '../ViewRender/ViewRender.ts'
 import { createClient } from '../Client/Client.ts'
 import { disposeFrame, renderPreparedFrame } from '../RenderFrame/RenderFrame.ts'
 import { createDomRenderer } from '../ReplayDom/ReplayDom.ts'

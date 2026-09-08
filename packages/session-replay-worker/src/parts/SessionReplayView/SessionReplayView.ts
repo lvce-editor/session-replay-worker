@@ -1,7 +1,8 @@
-import type { ViewRender } from '../Render/Render.ts'
-import type { SessionReplayState, ViewEvent } from '../SessionReplayState/SessionReplayState.ts'
+import type { SessionReplayState } from '../SessionReplayState/SessionReplayState.ts'
 import type { ReplayStorage } from '../Storage/Storage.ts'
 import type { ReplaySource } from '../Types/Types.ts'
+import type { ViewEvent } from '../ViewEvent/ViewEvent.ts'
+import type { ViewRender } from '../ViewRender/ViewRender.ts'
 import { dispatch } from '../CommandMap/CommandMap.ts'
 import { create } from '../Create/Create.ts'
 import { loadContent } from '../LoadContent/LoadContent.ts'
@@ -29,7 +30,14 @@ export const createSessionReplayView = (getStorage: () => Promise<ReplayStorage>
       states.set(state.uid, state)
       return result
     } catch (error) {
-      const failed = { ...oldState, error: error instanceof Error ? error.message : String(error), playing: false, preview: undefined }
+      const failed = {
+        ...oldState,
+        error: error instanceof Error ? error.message : String(error),
+        playing: false,
+        pointerId: undefined,
+        preview: undefined,
+        sequence: state.sequence,
+      }
       states.set(state.uid, failed)
       return render(failed, failed)
     }

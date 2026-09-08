@@ -10,5 +10,5 @@
     "types": [],
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
-  "include": ["src/parts/Api/Api.ts"]
+  "include": ["src/parts/Api/Api.ts", "src/parts/PlayerStyles/PlayerStyles.ts"]
 }

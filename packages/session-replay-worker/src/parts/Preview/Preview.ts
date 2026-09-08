@@ -1,4 +1,6 @@
-import type { SessionReplayState, TimelinePoint } from '../SessionReplayState/SessionReplayState.ts'
+import type { SessionReplayState } from '../SessionReplayState/SessionReplayState.ts'
+import type { TimelinePoint } from '../ViewEvent/ViewEvent.ts'
+import { prepareFrame } from '../PrepareFrame/PrepareFrame.ts'
 
 export const getTimelinePosition = (state: SessionReplayState, point: TimelinePoint): number => {
   const inset = point.slider ? 6.5 : 0
@@ -16,7 +18,16 @@ export const preview = (state: SessionReplayState, point: TimelinePoint): Sessio
   if (!state.previewEnabled || !state.content || point.pointerType === 'touch' || point.width <= (point.slider ? 13 : 0)) return state
   try {
     const result = state.content.preview(getTimelinePosition(state, point))
-    return { ...state, preview: { frame: result.frame, position: result.position, width: point.windowWidth, x: point.x, y: point.top } }
+    return {
+      ...state,
+      preview: {
+        frame: prepareFrame(result.frame, state.assetBaseUrl),
+        position: result.position,
+        width: point.windowWidth,
+        x: point.x,
+        y: point.top,
+      },
+    }
   } catch {
     return hidePreview(state)
   }

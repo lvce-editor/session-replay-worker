@@ -1,5 +1,5 @@
-import type { ViewRender } from '../Render/Render.ts'
-import type { ViewEvent } from '../SessionReplayState/SessionReplayState.ts'
+import type { ViewEvent } from '../ViewEvent/ViewEvent.ts'
+import type { ViewRender } from '../ViewRender/ViewRender.ts'
 export interface ReplayNode {
   attrs?: Record<string, string>
   checked?: boolean

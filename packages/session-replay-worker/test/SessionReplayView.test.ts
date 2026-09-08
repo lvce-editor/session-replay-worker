@@ -1,7 +1,7 @@
 // cspell:ignore valuetext
 import { expect, test } from '@jest/globals'
-import type { TimelinePoint } from '../src/parts/SessionReplayState/SessionReplayState.ts'
 import type { Frame, ReplayNode } from '../src/parts/Types/Types.ts'
+import type { TimelinePoint } from '../src/parts/ViewEvent/ViewEvent.ts'
 import { dispatch } from '../src/parts/CommandMap/CommandMap.ts'
 import { create } from '../src/parts/Create/Create.ts'
 import { loadContent } from '../src/parts/LoadContent/LoadContent.ts'

@@ -1,4 +1,5 @@
-import type { SessionReplayState, TimelinePoint } from '../SessionReplayState/SessionReplayState.ts'
+import type { SessionReplayState } from '../SessionReplayState/SessionReplayState.ts'
+import type { TimelinePoint } from '../ViewEvent/ViewEvent.ts'
 import { getTimelinePosition } from '../Preview/Preview.ts'
 import { seek } from '../Seek/Seek.ts'
 

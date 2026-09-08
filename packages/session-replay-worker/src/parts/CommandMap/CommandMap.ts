@@ -1,4 +1,5 @@
-import type { SessionReplayState, ViewEvent } from '../SessionReplayState/SessionReplayState.ts'
+import type { SessionReplayState } from '../SessionReplayState/SessionReplayState.ts'
+import type { ViewEvent } from '../ViewEvent/ViewEvent.ts'
 import * as HandlePointer from '../HandlePointer/HandlePointer.ts'
 import * as Preview from '../Preview/Preview.ts'
 import { seek } from '../Seek/Seek.ts'

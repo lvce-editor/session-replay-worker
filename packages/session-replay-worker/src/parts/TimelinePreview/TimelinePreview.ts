@@ -1,4 +1,4 @@
-import type { ViewRender } from '../Render/Render.ts'
+import type { ViewRender } from '../ViewRender/ViewRender.ts'
 import { disposeFrame, renderPreparedFrame } from '../RenderFrame/RenderFrame.ts'
 
 export const createTimelinePreview = (

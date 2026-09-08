@@ -9,5 +9,5 @@ export const prepareFrame = (frame: Frame, assetBaseUrl?: string): Frame => ({
   },
   dom: normalizeDom(frame.dom, assetBaseUrl),
   styles: (frame.styles || []).filter((value) => typeof value === 'string').map((css) => replayCss(css, assetBaseUrl)),
-  viewport: frame.viewport.map((value) => Math.max(1, Math.min(16_384, value))) as [number, number],
+  viewport: (frame.viewport || [1280, 720]).map((value) => Math.max(1, Math.min(16_384, value))) as [number, number],
 })
