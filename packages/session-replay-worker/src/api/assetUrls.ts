@@ -9,7 +9,7 @@ export const resolveAssetUrl = (value: string, assetBaseUrl?: string): string | 
 }
 
 export const rewriteAssetUrls = (value: string, assetBaseUrl?: string): string =>
-  value.replace(/url\(\s*(?:"([^"\n]*)"|'([^'\n]*)'|([^\s)]+))\s*\)/gi, (original, doubleQuoted, singleQuoted, unquoted) => {
+  value.replaceAll(/url\(\s*(?:"([^"\n]*)"|'([^'\n]*)'|([^\s)]+))\s*\)/gi, (original, doubleQuoted, singleQuoted, unquoted) => {
     const url = resolveAssetUrl(doubleQuoted ?? singleQuoted ?? unquoted, assetBaseUrl)
     return url ? `url("${url}")` : original
   })

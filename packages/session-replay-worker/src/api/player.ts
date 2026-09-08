@@ -49,8 +49,8 @@ export const renderFrame = (document: Document, frame: Frame, assetBaseUrl?: str
   for (const [node, [x, y]] of scrolls) node.scrollTo(x, y)
 }
 
-export const mountPlayer = async (container: HTMLElement, { source, workerUrl, assetBaseUrl }: PlayerOptions): Promise<() => void> => {
-  const ownerDocument = container.ownerDocument
+export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source, workerUrl }: PlayerOptions): Promise<() => void> => {
+  const { ownerDocument } = container
   const assets = assetBaseUrl ? new URL(assetBaseUrl, ownerDocument.baseURI) : undefined
   if (
     assets &&

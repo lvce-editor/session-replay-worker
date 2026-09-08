@@ -6,8 +6,8 @@ for (const prefix of ['/icons/', '/static/0123456789abcdef/icons/', 'file:///opt
     await page.route('**/replay-assets/icons/*.svg', async (route) => {
       loaded.push(new URL(route.request().url()).pathname)
       await route.fulfill({
-        contentType: 'image/svg+xml',
         body: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><path fill="red" d="M0 0h16v16H0z"/></svg>',
+        contentType: 'image/svg+xml',
       })
     })
     await page.goto('/')
@@ -22,7 +22,7 @@ for (const prefix of ['/icons/', '/static/0123456789abcdef/icons/', 'file:///opt
       const frame = window.api.capture(document)
       await window.api.mountPlayer(document.body, {
         assetBaseUrl: '/replay-assets/',
-        source: { session: { version: 1, events: [0, 1000].map((timestamp, sequence) => ({ type: 'frame', sequence, timestamp, data: frame })) } },
+        source: { session: { events: [0, 1000].map((timestamp, sequence) => ({ data: frame, sequence, timestamp, type: 'frame' })), version: 1 } },
         workerUrl: '/dist/sessionReplayWorkerMain.js',
       })
     }, prefix)
@@ -34,7 +34,7 @@ for (const prefix of ['/icons/', '/static/0123456789abcdef/icons/', 'file:///opt
       await expect(replay.locator('.StatusBarIcon')).toHaveCSS('mask-image', 'url("http://127.0.0.1:4317/replay-assets/icons/source-control.svg")')
     }
     await expect
-      .poll(() => [...new Set(loaded)].sort())
+      .poll(() => [...new Set(loaded)].toSorted((a, b) => a.localeCompare(b)))
       .toEqual(['/replay-assets/icons/files.svg', '/replay-assets/icons/icon.svg', '/replay-assets/icons/source-control.svg'])
   })
 }
@@ -48,17 +48,18 @@ test('configured replay assets do not allow unrelated recorded network requests'
     return route.abort()
   })
   await page.evaluate(async () => {
-    document.querySelector('.Editor')!.innerHTML =
-      '<img src="/private/image"><div style="background:url(/private/pixel);width:10px;height:10px">test</div>'
     const frame = window.api.capture(document)
+    frame.dom.children = [
+      { attrs: { src: '/private/image' }, tag: 'img' },
+      { attrs: { style: 'background:url(/private/pixel);width:10px;height:10px' }, tag: 'div' },
+    ]
     frame.styles.push('@import url(/private/style);')
     await window.api.mountPlayer(document.body, {
       assetBaseUrl: '/replay-assets/',
-      source: { session: { version: 1, events: [{ type: 'frame', sequence: 0, timestamp: 0, data: frame }] } },
+      source: { session: { events: [{ data: frame, sequence: 0, timestamp: 0, type: 'frame' }], version: 1 } },
       workerUrl: '/dist/sessionReplayWorkerMain.js',
     })
   })
-  requests.length = 0
   await page.getByRole('slider').fill('0')
   await expect(page.frameLocator('iframe').locator('img')).not.toHaveAttribute('src')
   expect(requests).toEqual([])
