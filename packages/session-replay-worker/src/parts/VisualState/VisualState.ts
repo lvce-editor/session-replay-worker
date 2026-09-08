@@ -1,4 +1,5 @@
 import type { ProxyMessage } from '../Proxy/Proxy.ts'
+import type { ReplayCommand } from '../ReplayCommand/ReplayCommand.ts'
 import type { Frame } from '../Types/Types.ts'
 import type { Patch, VirtualNode } from '../VisualDom/VisualDom.ts'
 import { createVisualDom } from '../VisualDom/VisualDom.ts'
@@ -30,7 +31,7 @@ export const createVisualState = (initial: Frame): { accept: (message: ProxyMess
     }
   }
   const apply = (method: string | undefined, params: any[] = []): void => {
-    if (method && Object.hasOwn(handlers, method)) handlers[method](...params)
+    if (method && Object.hasOwn(handlers, method)) handlers[method as keyof typeof handlers](...params)
   }
   const execute = (commands: Command[]): void => {
     for (const [method, ...params] of commands) apply(method, params)
@@ -78,7 +79,7 @@ export const createVisualState = (initial: Frame): { accept: (message: ProxyMess
   const create = (_id: string | number, uid = Number(_id)): void => {
     views[uid] = element()
   }
-  const handlers: Record<string, (...args: any[]) => void> = {
+  const handlers: Record<Exclude<ReplayCommand, 'Viewlet.queueCommands'>, (...args: any[]) => void> = {
     'Css.addCssStyleSheet': setCss,
     'Css.removeCssStyleSheet': (uid: unknown) => {
       sheets = sheets.filter((entry) => ![entry.uid].includes(uid))
