@@ -166,7 +166,8 @@ export const createVisualDom = (): {
       if (!Number.isSafeInteger(childCount) || childCount < 0 || stack.length > 150) throw new Error('Invalid virtual DOM child count or depth')
       if (childCount) stack.push({ node, remaining: childCount })
     }
-    if (stack.some((entry) => entry.remaining !== 0)) throw new Error('Incomplete replay virtual DOM')
+    // The live renderer appends the available children when childCount exceeds the payload.
+    // Keep the same partial tree so subsequent recorded updates can still apply.
     return roots
   }
   const patch = (uid: number, input: readonly Patch[]): void => {

@@ -30,6 +30,87 @@ test('replays the assembled explorer and editor DOM using only the replay worker
   expect(workers.every((url) => url.endsWith('/dist/sessionReplayWorkerMain.js'))).toBe(true)
 })
 
+test('playback and seeking continue through virtual DOM updates with missing children', async ({ page }) => {
+  await page.evaluate(async () => {
+    const messages = [
+      { method: 'Viewlet.createFunctionalRoot', params: ['Editor', 1, true] },
+      {
+        method: 'Viewlet.setDom2',
+        params: [
+          1,
+          [
+            { childCount: 1, className: 'Editor', type: 4 },
+            { text: 'before', type: 12 },
+          ],
+        ],
+      },
+      { method: 'Viewlet.appendToBody', params: [1] },
+      {
+        method: 'Viewlet.setTreePatches',
+        params: [
+          1,
+          [
+            {
+              nodes: [
+                { childCount: 2, className: 'Editor', type: 4 },
+                { childCount: 1, type: 4 },
+              ],
+              type: 2,
+            },
+          ],
+        ],
+      },
+      {
+        method: 'Viewlet.setTreePatches',
+        params: [
+          1,
+          [
+            { index: 0, type: 7 },
+            { nodes: [{ text: 'continued', type: 12 }], type: 6 },
+          ],
+        ],
+      },
+    ]
+    await window.api.mountPlayer(document.body, {
+      source: {
+        session: {
+          events: [
+            {
+              data: { commandReplay: true, dom: { children: [], tag: 'body' }, styles: [], viewport: [800, 600] },
+              sequence: 0,
+              timestamp: 0,
+              type: 'frame',
+            },
+            ...messages.map((message, index) => ({
+              data: { connection: 1, direction: 'to-renderer', message, renderer: true },
+              sequence: index + 1,
+              timestamp: index < 3 ? 0 : (index - 2) * 1000,
+              type: 'message',
+            })),
+          ],
+          version: 1,
+        },
+      },
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
+    })
+  })
+  const editor = page.locator('.SessionReplaySurface .Editor')
+  const controls = page.getByRole('group', { name: 'Session replay controls' })
+  const slider = controls.getByRole('slider')
+  const status = controls.locator('output')
+  await expect(editor).toHaveText('before')
+  await controls.getByRole('button', { exact: true, name: 'Play' }).click()
+  await expect(editor).toHaveText('continued')
+  await expect(slider).toHaveValue('2000')
+  await expect(status).not.toContainText('Incomplete replay virtual DOM')
+  await slider.focus()
+  await page.keyboard.press('Home')
+  await expect(editor).toHaveText('before')
+  await page.keyboard.press('End')
+  await expect(editor).toHaveText('continued')
+  await expect(status).not.toContainText('Incomplete replay virtual DOM')
+})
+
 const timeline = async (page: Page): Promise<void> =>
   page.evaluate(async () => {
     const before = window.api.capture(document)
