@@ -5,10 +5,10 @@
     "target": "ES2022",
     "noEmit": false,
     "declaration": true,
-    "rootDir": "src/api",
-    "outDir": "../../.tmp/dist/dist/api",
+    "rootDir": "src/parts",
+    "outDir": "../../.tmp/dist/dist/parts",
     "types": [],
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
-  "include": ["src/api/**/*.ts"]
+  "include": ["src/parts/Api/Api.ts"]
 }

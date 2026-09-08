@@ -1,4 +1,4 @@
-import type { ReplayEvent, Session, SessionMetadata } from './api/types.ts'
+import type { ReplayEvent, Session, SessionMetadata } from '../Types/Types.ts'
 
 export interface ReplayStorage {
   close(): void

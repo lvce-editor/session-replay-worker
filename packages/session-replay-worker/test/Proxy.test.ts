@@ -1,8 +1,8 @@
 import { afterEach, expect, test } from '@jest/globals'
-import type { ProxyMessage } from '../src/proxy.ts'
-import { getTransferrables } from '../src/api/transfer.ts'
-import { createProxyRegistry } from '../src/proxy.ts'
-import { createMessageSerializer } from '../src/serializeProxyMessage.ts'
+import type { ProxyMessage } from '../src/parts/Proxy/Proxy.ts'
+import { getTransferrables } from '../src/parts/Transfer/Transfer.ts'
+import { createProxyRegistry } from '../src/parts/Proxy/Proxy.ts'
+import { createMessageSerializer } from '../src/parts/SerializeProxyMessage/SerializeProxyMessage.ts'
 
 const cleanups: (() => void)[] = []
 afterEach(() => {

@@ -1,11 +1,11 @@
-import type { WorkerCommands } from './api/types.ts'
-import type { ReplayStorage } from './storage.ts'
-import { getTransferrables } from './api/transfer.ts'
-import { loadContent } from './protocol.ts'
-import { createProxyRegistry } from './proxy.ts'
-import { createRecorder } from './recorder.ts'
-import { createMessageSerializer } from './serializeProxyMessage.ts'
-import { createStorage } from './storage.ts'
+import type { WorkerCommands } from '../Types/Types.ts'
+import type { ReplayStorage } from '../Storage/Storage.ts'
+import { getTransferrables } from '../Transfer/Transfer.ts'
+import { loadContent } from '../Protocol/Protocol.ts'
+import { createProxyRegistry } from '../Proxy/Proxy.ts'
+import { createRecorder } from '../Recorder/Recorder.ts'
+import { createMessageSerializer } from '../SerializeProxyMessage/SerializeProxyMessage.ts'
+import { createStorage } from '../Storage/Storage.ts'
 
 let storage: ReplayStorage | undefined
 let recorder: ReturnType<typeof createRecorder>

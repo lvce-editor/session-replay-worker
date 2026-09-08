@@ -1,4 +1,4 @@
-import type * as api from '../session-replay-worker/src/api/index.ts'
+import type * as api from '../session-replay-worker/src/parts/Api/Api.ts'
 
 declare global {
   interface Window {

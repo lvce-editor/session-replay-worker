@@ -1,6 +1,6 @@
-export { capture, observe, serializeMessage } from './capture.ts'
-export { createClient } from './client.ts'
-export { mountPlayer, renderFrame } from './player.ts'
+export { capture, observe, serializeMessage } from '../Capture/Capture.ts'
+export { createClient } from '../Client/Client.ts'
+export { mountPlayer, renderFrame } from '../Player/Player.ts'
 export type {
   Frame,
   PlayerOptions,
@@ -15,4 +15,4 @@ export type {
   Session,
   SessionMetadata,
   WorkerCommands,
-} from './types.ts'
+} from '../Types/Types.ts'
