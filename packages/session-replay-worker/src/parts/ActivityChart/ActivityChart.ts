@@ -13,7 +13,7 @@ export const createActivityChart = (
   element.setAttribute('role', 'img')
   element.setAttribute('aria-label', 'Session replay activity')
   const title = document.createElementNS(namespace, 'title')
-  title.textContent = 'Recorded activity over time. Click to seek, or use the position slider with the keyboard.'
+  title.textContent = 'Recorded activity over time. Click or drag to seek, or use the position slider with the keyboard.'
   const path = document.createElementNS(namespace, 'path')
   const cursor = document.createElementNS(namespace, 'line')
   cursor.classList.add('SessionReplayActivityCursor')

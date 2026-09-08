@@ -120,13 +120,32 @@ export const mountPlayer = async (
   slider.oninput = (): void => {
     seekTo(Number(slider.value))
   }
-  activity.element.onclick = (event): void => {
+  let dragPointerId: number | undefined
+  const seekActivity = (event: PointerEvent): void => {
     const bounds = activity.element.getBoundingClientRect()
     if (!bounds.width || slider.disabled) return
     slider.focus()
     const fraction = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
     seekTo(fraction * duration)
   }
+  activity.element.onpointerdown = (event): void => {
+    if (event.button !== 0 || !event.isPrimary || slider.disabled) return
+    event.preventDefault()
+    dragPointerId = event.pointerId
+    activity.element.setPointerCapture(event.pointerId)
+    seekActivity(event)
+  }
+  activity.element.onpointermove = (event): void => {
+    if (event.pointerId === dragPointerId) seekActivity(event)
+  }
+  const endDrag = (event: PointerEvent): void => {
+    if (event.pointerId !== dragPointerId) return
+    dragPointerId = undefined
+    if (activity.element.hasPointerCapture(event.pointerId)) activity.element.releasePointerCapture(event.pointerId)
+  }
+  activity.element.onpointerup = endDrag
+  activity.element.onpointercancel = endDrag
+  activity.element.onlostpointercapture = endDrag
   play.onclick = (): void => {
     if (playing) {
       pause()

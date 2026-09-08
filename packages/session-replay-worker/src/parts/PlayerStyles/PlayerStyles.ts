@@ -106,6 +106,8 @@ export const playerStyles = `
   border-bottom: 1px solid #454950;
   fill: #00adef80;
   cursor: pointer;
+  touch-action: none;
+  user-select: none;
 }
 .SessionReplayControls > .SessionReplayActivity:hover {
   fill: #00adefb3;

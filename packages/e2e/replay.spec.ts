@@ -353,24 +353,70 @@ test('an explicit preview option overrides the saved setting and player disposal
   await expect(page.locator('iframe')).toHaveCount(0)
 })
 
+test('dragging the activity timeline updates the preview and progress before release and captures the pointer outside the chart', async ({
+  page,
+}) => {
+  await timeline(page)
+  const chart = page.getByRole('img', { name: 'Session replay activity' })
+  const bounds = (await chart.boundingBox())!
+  const slider = page.getByRole('slider')
+  const preview = page.frameLocator('iframe[title="Session replay preview"]')
+  const cursor = chart.locator('line')
+  await page.mouse.move(bounds.x + bounds.width * 0.25, bounds.y + bounds.height / 2)
+  await page.mouse.down()
+  for (const fraction of [0.75, 0.25]) {
+    await page.mouse.move(bounds.x + bounds.width * fraction, bounds.y + bounds.height / 2, { steps: 5 })
+    const text = fraction > 0.5 ? 'edited after typing' : 'const answer'
+    await expect(page.locator('.SessionReplaySurface .Editor')).toContainText(text)
+    await expect(preview.locator('.Editor')).toContainText(text)
+    await expect(slider).toHaveValue(String(1500 * fraction))
+    await expect(slider).toHaveCSS('--replay-progress', `${fraction * 100}%`)
+    await expect(cursor).toHaveAttribute('x1', String(fraction * 240))
+  }
+  await page.mouse.move(bounds.x + bounds.width + 20, bounds.y - 20)
+  await expect(slider).toHaveValue('1500')
+  await expect(slider).toHaveCSS('--replay-progress', '100%')
+  await page.mouse.move(bounds.x - 20, bounds.y - 20)
+  await expect(slider).toHaveValue('0')
+  await expect(slider).toHaveCSS('--replay-progress', '0%')
+  await page.mouse.up()
+  await chart.hover({ position: { x: bounds.width * 0.75, y: bounds.height / 2 } })
+  await expect(preview.locator('.Editor')).toHaveText('edited after typing')
+  await expect(slider).toHaveValue('0')
+})
+
+test('cancelling an activity timeline drag stops seeking', async ({ page }) => {
+  await timeline(page)
+  const chart = page.getByRole('img', { name: 'Session replay activity' })
+  const bounds = (await chart.boundingBox())!
+  await page.mouse.move(bounds.x + bounds.width * 0.25, bounds.y + bounds.height / 2)
+  await page.mouse.down()
+  await expect(page.getByRole('slider')).toHaveValue('375')
+  await chart.dispatchEvent('pointercancel', { pointerId: 1 })
+  await page.mouse.move(bounds.x + bounds.width * 0.75, bounds.y + bounds.height / 2)
+  await expect(page.frameLocator('iframe[title="Session replay preview"]').locator('.Editor')).toHaveText('edited after typing')
+  await expect(page.getByRole('slider')).toHaveValue('375')
+  await page.mouse.up()
+})
+
 for (const playing of [false, true]) {
   const buttonName = playing ? 'Pause' : 'Play'
   const advance = playing ? 50 : 0
-  for (const control of ['slider click', 'slider drag', 'activity chart']) {
+  for (const control of ['slider click', 'slider drag', 'activity chart', 'activity drag']) {
     test(`${control} preserves ${playing ? 'playing' : 'paused'} playback when seeking forward and backward`, async ({ page }) => {
       await timeline(page)
       await page.clock.install({ time: 0 })
       await page.clock.pauseAt(1000)
       const slider = page.getByRole('slider')
       if (playing) await page.getByRole('button', { exact: true, name: 'Play' }).click()
-      const target = control === 'activity chart' ? page.getByRole('img', { name: 'Session replay activity' }) : slider
+      const target = control.startsWith('activity') ? page.getByRole('img', { name: 'Session replay activity' }) : slider
       const bounds = (await target.boundingBox())!
-      if (control === 'slider drag') {
+      if (control.endsWith('drag')) {
         await page.mouse.move(bounds.x + 7, bounds.y + bounds.height / 2)
         await page.mouse.down()
       }
       for (const fraction of [0.75, 0.25]) {
-        if (control === 'slider drag') {
+        if (control.endsWith('drag')) {
           await page.mouse.move(bounds.x + bounds.width * fraction, bounds.y + bounds.height / 2, { steps: 5 })
         } else {
           await target.click({ position: { x: bounds.width * fraction, y: bounds.height / 2 } })
@@ -383,7 +429,7 @@ for (const playing of [false, true]) {
         await page.clock.runFor(50)
         await expect(slider).toHaveValue(String(position + advance))
       }
-      if (control === 'slider drag') await page.mouse.up()
+      if (control.endsWith('drag')) await page.mouse.up()
       const position = Number(await slider.inputValue())
       await page.clock.runFor(50)
       await expect(slider).toHaveValue(String(position + advance))
