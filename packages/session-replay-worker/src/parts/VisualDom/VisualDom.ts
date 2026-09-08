@@ -1,5 +1,5 @@
 import { ElementTagMap, VirtualDomElements } from '@lvce-editor/constants'
-import type { ReplayNode } from './api/types.ts'
+import type { ReplayNode } from '../Types/Types.ts'
 
 export interface VirtualNode {
   [key: string]: unknown

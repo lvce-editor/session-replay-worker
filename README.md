@@ -66,3 +66,10 @@ client.dispose()
 Build versions follow `RG_VERSION`, `GIT_TAG`, or an exact Git tag, falling back to `0.0.0-dev`.
 
 Existing renderer and backend consumers remain pinned to the earlier flat-layout Git commit. For new local integrations, install the built `.tmp/dist` package; the monorepo root is private and is not the runtime package. Pull requests and pushes to `main` run the PR and CI workflows across Linux, macOS, and Windows. Pushing a version tag such as `v1.0.0` runs the release workflow, which validates the tagged build, publishes `.tmp/dist` to npm using the `NPM_TOKEN` repository secret, and publishes the GitHub release.
+
+When hosting recordings from another editor build, pass `assetBaseUrl` to
+`mountPlayer`, for example `/session-replay-assets/lvce-editor/`. Serve the editor's
+`icons`, `fonts`, and `file-icons` directories there. The player maps recorded
+asset paths to this same-origin directory, including old commit prefixes and
+Electron file URLs. Other recorded network resources remain blocked. Without
+this option, playback continues to permit only embedded image and font data.

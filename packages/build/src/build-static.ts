@@ -31,8 +31,8 @@ await build({
     {
       name: 'api-path',
       setup(build) {
-        build.onResolve({ filter: /api\/(index|player)\.ts$/ }, (args) => ({
-          path: `../dist/api/${args.path.endsWith('player.ts') ? 'player' : 'index'}.js`,
+        build.onResolve({ filter: /(Api\/Api|Player\/Player)\.ts$/ }, (args) => ({
+          path: `../dist/api/${args.path.endsWith('Player.ts') ? 'player' : 'index'}.js`,
           external: true,
         }))
       },

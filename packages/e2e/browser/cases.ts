@@ -1,6 +1,6 @@
-import type { ReplaySource, Session } from '../../session-replay-worker/src/api/types.ts'
-import * as api from '../../session-replay-worker/src/api/index.ts'
-import { capture, createClient, mountPlayer, observe } from '../../session-replay-worker/src/api/index.ts'
+import type { ReplaySource, Session } from '../../session-replay-worker/src/parts/Types/Types.ts'
+import * as api from '../../session-replay-worker/src/parts/Api/Api.ts'
+import { capture, createClient, mountPlayer, observe } from '../../session-replay-worker/src/parts/Api/Api.ts'
 
 const workerUrl = new URL('../dist/sessionReplayWorkerMain.js', import.meta.url)
 
