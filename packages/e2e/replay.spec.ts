@@ -401,3 +401,78 @@ test('replay controls fit a narrow viewport with usable pointer targets', async 
   expect(slider!.x + slider!.width).toBeLessThan(status!.x)
   expect(status!.x + status!.width).toBeLessThanOrEqual(320)
 })
+
+test('activity chart shows quiet gaps and peaks, and clicking it pauses and seeks', async ({ page }) => {
+  await page.evaluate(async () => {
+    const before = window.api.capture(document)
+    document.querySelector('.Editor')!.textContent = 'activity near the end'
+    const after = window.api.capture(document)
+    await window.api.mountPlayer(document.body, {
+      source: {
+        session: {
+          events: [
+            { data: before, sequence: 0, timestamp: 0, type: 'frame' },
+            { data: {}, sequence: 1, timestamp: 2000, type: 'message' },
+            { data: {}, sequence: 2, timestamp: 2100, type: 'message' },
+            { data: after, sequence: 3, timestamp: 8000, type: 'frame' },
+            { data: {}, sequence: 4, timestamp: 8050, type: 'message' },
+            { data: {}, sequence: 5, timestamp: 8100, type: 'message' },
+            { data: {}, sequence: 6, timestamp: 10_000, type: 'message' },
+          ],
+          version: 1,
+        },
+      },
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
+    })
+  })
+  const chart = page.getByRole('img', { name: 'Session replay activity' })
+  await expect(chart).toBeVisible()
+  const fills = await chart.locator('path').evaluate((node) => {
+    const path = node as SVGPathElement
+    return [
+      path.isPointInFill(new DOMPoint(1, 47)),
+      path.isPointInFill(new DOMPoint(120, 47)),
+      path.isPointInFill(new DOMPoint(49, 47)),
+      path.isPointInFill(new DOMPoint(49, 10)),
+      path.isPointInFill(new DOMPoint(193, 10)),
+    ]
+  })
+  expect(fills).toEqual([false, false, true, false, true])
+  const bounds = (await chart.boundingBox())!
+  const slider = page.getByRole('slider')
+  const sliderBounds = (await slider.boundingBox())!
+  expect(bounds.y + bounds.height).toBeLessThanOrEqual(sliderBounds.y)
+  expect(bounds.x).toBeCloseTo(sliderBounds.x + 6.5)
+  expect(bounds.width).toBeCloseTo(sliderBounds.width - 13)
+  await page.clock.install({ time: 0 })
+  await page.clock.pauseAt(1000)
+  await page.getByRole('button', { exact: true, name: 'Play' }).click()
+  await expect(page.getByRole('button', { exact: true, name: 'Pause' })).toBeVisible()
+  await chart.click({ position: { x: bounds.width * 0.82, y: 24 } })
+  await expect(page.getByRole('button', { exact: true, name: 'Play' })).toBeVisible()
+  await expect(page.frameLocator('iframe').locator('.Editor')).toHaveText('activity near the end')
+  expect(Number(await slider.inputValue())).toBeGreaterThanOrEqual(8100)
+  expect(Number(await slider.inputValue())).toBeLessThan(8300)
+  await expect(slider).toBeFocused()
+  await page.keyboard.press('Home')
+  await expect(slider).toHaveValue('0')
+  await expect(chart.locator('line')).toHaveAttribute('x1', '0')
+  await page.keyboard.press('End')
+  await expect(slider).toHaveValue('10000')
+  await expect(chart.locator('line')).toHaveAttribute('x1', '240')
+})
+
+test('a zero-duration replay has a flat activity chart and can be clicked safely', async ({ page }) => {
+  await page.evaluate(async () => {
+    const frame = window.api.capture(document)
+    await window.api.mountPlayer(document.body, {
+      source: { session: { events: [{ data: frame, sequence: 0, timestamp: 0, type: 'frame' }], version: 1 } },
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
+    })
+  })
+  const chart = page.getByRole('img', { name: 'Session replay activity' })
+  await expect(chart.locator('path')).toHaveAttribute('d', '')
+  await chart.click()
+  await expect(page.getByRole('slider')).toHaveValue('0')
+  await expect(page.locator('output')).toHaveText('0.0 / 0.0 s')
+})
