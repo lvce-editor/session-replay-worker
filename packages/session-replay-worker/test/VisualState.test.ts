@@ -1,7 +1,7 @@
 import { expect, test } from '@jest/globals'
 import { VirtualDomElements as V } from '@lvce-editor/constants'
-import type { Frame, ReplayEvent } from '../src/parts/Types/Types.ts'
 import type { ProxyMessage, RpcMessage } from '../src/parts/Proxy/Proxy.ts'
+import type { Frame, ReplayEvent } from '../src/parts/Types/Types.ts'
 import { loadContent } from '../src/parts/Protocol/Protocol.ts'
 
 const initial: Frame = { commandReplay: true, dom: { children: [], tag: 'body' }, styles: [], viewport: [800, 600] }

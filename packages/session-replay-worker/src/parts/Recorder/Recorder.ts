@@ -1,5 +1,5 @@
-import type { RecordingOptions, ReplayEvent, RecordParams, Session, SessionMetadata, WorkerCommands, RecordingStatus } from '../Types/Types.ts'
 import type { ReplayStorage } from '../Storage/Storage.ts'
+import type { RecordingOptions, ReplayEvent, RecordParams, Session, SessionMetadata, WorkerCommands, RecordingStatus } from '../Types/Types.ts'
 import { bytes, maxEventBytes, maxSessionBytes, version } from '../Protocol/Protocol.ts'
 
 interface RecorderDependencies {

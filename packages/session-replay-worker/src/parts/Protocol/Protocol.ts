@@ -1,5 +1,5 @@
-import type { Session, SeekResult } from '../Types/Types.ts'
 import type { ProxyMessage } from '../Proxy/Proxy.ts'
+import type { Session, SeekResult } from '../Types/Types.ts'
 import { createVisualState } from '../VisualState/VisualState.ts'
 
 export const version = 1

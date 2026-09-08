@@ -1,5 +1,5 @@
-import type { Frame } from '../Types/Types.ts'
 import type { ProxyMessage } from '../Proxy/Proxy.ts'
+import type { Frame } from '../Types/Types.ts'
 import type { Patch, VirtualNode } from '../VisualDom/VisualDom.ts'
 import { createVisualDom } from '../VisualDom/VisualDom.ts'
 
