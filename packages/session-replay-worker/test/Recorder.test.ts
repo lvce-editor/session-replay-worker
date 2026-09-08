@@ -122,3 +122,36 @@ test('oversized event is rejected without consuming a sequence', async () => {
   await recorder.record('frame', frame('small'))
   expect(recorder.export().events[0].sequence).toBe(0)
 })
+
+test('captures platform metadata at start and preserves it in storage, export and the creation request', async () => {
+  const navigator = { platform: 'Linux x86_64', userAgent: 'Mozilla/5.0 Chrome/154.0.0.0 Electron/44.1.2' }
+  const expected = { ...navigator }
+  const saved: unknown[] = []
+  const requests: Record<string, unknown>[] = []
+  const recorder = createRecorder({
+    fetch: async (_url, options) => {
+      requests.push(JSON.parse(String(options?.body)))
+      return Response.json({ id: 'remote', uploadToken: 'token' })
+    },
+    navigator,
+    storage: {
+      save: async (metadata): Promise<void> => {
+        saved.push(metadata)
+      },
+    },
+  })
+  await recorder.start({ endpoint: 'https://backend.test/session-replay', local: true, upload: true })
+  navigator.userAgent = 'changed after start'
+  await recorder.record('frame', frame('first'))
+  await recorder.flush()
+  await recorder.record('frame', frame('second'))
+  await recorder.flush()
+  expect(recorder.export()).toMatchObject(expected)
+  expect(saved[0]).toMatchObject(expected)
+  expect(requests[0]).toMatchObject({ ...expected, version: 1 })
+  expect(requests.slice(1)).toHaveLength(2)
+  for (const request of requests.slice(1)) {
+    expect(request).not.toHaveProperty('userAgent')
+    expect(request).not.toHaveProperty('platform')
+  }
+})

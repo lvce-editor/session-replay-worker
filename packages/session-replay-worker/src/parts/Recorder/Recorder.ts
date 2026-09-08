@@ -4,12 +4,14 @@ import { bytes, maxEventBytes, maxSessionBytes, version } from '../Protocol/Prot
 
 interface RecorderDependencies {
   fetch?: typeof globalThis.fetch
+  navigator?: Pick<Navigator, 'platform' | 'userAgent'>
   now?: () => number
   storage?: Pick<ReplayStorage, 'save'>
 }
 
 export const createRecorder = ({
   fetch: request = globalThis.fetch,
+  navigator = globalThis.navigator,
   now = (): number => performance.now(),
   storage,
 }: RecorderDependencies): Pick<WorkerCommands, 'start' | 'record' | 'flush' | 'status'> & { export: () => Session } => {
@@ -28,7 +30,13 @@ export const createRecorder = ({
     if (metadata) throw new Error('A session is already recording')
     options = config
     origin = now()
-    metadata = { createdAt: new Date().toISOString(), id: crypto.randomUUID(), version }
+    metadata = {
+      createdAt: new Date().toISOString(),
+      id: crypto.randomUUID(),
+      platform: navigator?.platform || '',
+      userAgent: navigator?.userAgent || '',
+      version,
+    }
     if (options.local) await storage!.save(metadata, [])
     return metadata.id
   }
@@ -62,7 +70,11 @@ export const createRecorder = ({
       if (!response.ok) throw new Error(`Session replay upload failed (${response.status})`)
       return response.json()
     }
-    if (!remote) remote = (await send(endpoint, { createdAt: metadata.createdAt, version })) as { id: string; uploadToken: string }
+    if (!remote)
+      remote = (await send(endpoint, { createdAt: metadata.createdAt, platform: metadata.platform, userAgent: metadata.userAgent, version })) as {
+        id: string
+        uploadToken: string
+      }
     while (pending.length > 0) {
       const batch: ReplayEvent[] = []
       let batchBytes = 0
