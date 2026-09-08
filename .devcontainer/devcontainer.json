@@ -1,6 +1,9 @@
 {
   "name": "session-replay-worker",
-  "image": "mcr.microsoft.com/devcontainers/node:24",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24",
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {}
+  },
   "postCreateCommand": "npm ci",
   "customizations": {
     "vscode": {
