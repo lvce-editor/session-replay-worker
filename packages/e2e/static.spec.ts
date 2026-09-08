@@ -89,5 +89,5 @@ test('reports a failed browser scenario when the published worker cannot load', 
   await page.goto('/session-replay-worker/tests/?test=replays%20CSS%20styles')
   await expect(page.locator('#summary')).toHaveText('0 passed, 1 failed')
   await expect(page.locator('li[data-state="failed"]')).toContainText('Session replay worker failed to load')
-  await expect(page.getByRole('button', { name: 'Run test', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { exact: true, name: 'Run test' })).toBeEnabled()
 })
