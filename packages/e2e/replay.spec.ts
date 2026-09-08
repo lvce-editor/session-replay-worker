@@ -453,8 +453,8 @@ test('leaving the timeline discards delayed previews and disabling stops further
     // Preserve the native receiver while simulating a slow worker under the fake clock.
     // eslint-disable-next-line @typescript-eslint/unbound-method
     const original = Worker.prototype.postMessage
-    Worker.prototype.postMessage = function (message: { method: string }): void {
-      if (message.method === 'preview') {
+    Worker.prototype.postMessage = function (message: { method: string; params?: [number, { type: string }] }): void {
+      if (message.method === 'SessionReplay.dispatch' && message.params?.[1].type === 'preview') {
         document.documentElement.dataset.previewRequests = String(Number(document.documentElement.dataset.previewRequests || 0) + 1)
         // eslint-disable-next-line e2e/no-timeouts, unicorn/no-this-outside-of-class
         setTimeout(() => original.call(this, message), 500)
@@ -583,3 +583,29 @@ for (const playing of [false, true]) {
     })
   }
 }
+
+test('player receives its controls and sanitized replay frame as virtual DOM from the worker', async ({ page }) => {
+  await page.evaluate(() => {
+    const NativeWorker = Worker
+    window.Worker = class extends NativeWorker {
+      constructor(url: string | URL, options?: WorkerOptions) {
+        super(url, options)
+        this.addEventListener('message', ({ data }) => {
+          if (data.result?.dom?.attrs?.class !== 'SessionReplay') {
+            return
+          }
+
+          document.documentElement.dataset.workerView = 'true'
+          if (data.result.frame) document.documentElement.dataset.workerFrame = 'true'
+        })
+      }
+    }
+  })
+  await timeline(page)
+  await expect(page.locator('html')).toHaveAttribute('data-worker-view', 'true')
+  await expect(page.locator('html')).toHaveAttribute('data-worker-frame', 'true')
+  await page.getByRole('slider').focus()
+  await page.keyboard.press('End')
+  await expect(page.locator('.SessionReplaySurface .Editor')).toHaveText('edited after typing')
+  await expect(page.getByRole('slider')).toBeFocused()
+})

@@ -1,10 +1,10 @@
 import type { Frame } from '../Types/Types.ts'
-import { replayCss } from '../ReplayCss/ReplayCss.ts'
-import { createDomRenderer, normalizeDom } from '../ReplayDom/ReplayDom.ts'
+import { prepareFrame } from '../PrepareFrame/PrepareFrame.ts'
+import { createDomRenderer } from '../ReplayDom/ReplayDom.ts'
 
 interface FrameRenderer {
   dispose: () => void
-  render: (frame: Frame, assetBaseUrl?: string) => void
+  render: (frame: Frame) => void
 }
 
 const renderers = new WeakMap<Document | HTMLElement, FrameRenderer>()
@@ -28,30 +28,28 @@ const createRenderer = (target: Document | HTMLElement): FrameRenderer => {
   const render = createDomRenderer(surface)
   let sheets: CSSStyleSheet[] = []
   let previousStyles: string[] = []
-  let previousBase: string | undefined
   let previousClass = originalClass
   let previousTheme: string | undefined
   let appliedTheme = originalTheme
   const removeSheets = (): CSSStyleSheet[] => document.adoptedStyleSheets.filter((sheet) => !sheets.includes(sheet))
-  const update = (frame: Frame, assetBaseUrl?: string): void => {
-    const dom = normalizeDom(frame.dom, assetBaseUrl)
+  const update = (frame: Frame): void => {
+    const { dom } = frame
     const styles = (frame.styles || []).filter((value) => typeof value === 'string')
-    if (previousBase !== assetBaseUrl || styles.length !== previousStyles.length || styles.some((css, index) => css !== previousStyles[index])) {
+    if (styles.length !== previousStyles.length || styles.some((css, index) => css !== previousStyles[index])) {
       const others = removeSheets()
       sheets = styles.map((css, index) => {
-        if (previousBase === assetBaseUrl && css === previousStyles[index]) return sheets[index]
+        if (css === previousStyles[index]) return sheets[index]
         const sheet = new Sheet()
-        sheet.replaceSync(replayCss(css, assetBaseUrl))
+        sheet.replaceSync(css)
         return sheet
       })
       document.adoptedStyleSheets = [...others, ...sheets]
       previousStyles = styles
-      previousBase = assetBaseUrl
     }
     const className = typeof frame.documentElement?.className === 'string' ? frame.documentElement.className : ''
     if (root.className !== className) root.className = className
     previousClass = className
-    const theme = replayCss(typeof frame.documentElement?.style === 'string' ? frame.documentElement.style : '', assetBaseUrl, true)
+    const theme = frame.documentElement?.style || ''
     if (theme !== previousTheme) root.style.cssText = theme
     previousTheme = theme
     appliedTheme = root.style.cssText
@@ -75,11 +73,15 @@ export const disposeFrame = (target: Document | HTMLElement): void => {
   renderers.delete(target)
 }
 
-export const renderFrame = (target: Document | HTMLElement, frame: Frame, assetBaseUrl?: string): void => {
+export const renderPreparedFrame = (target: Document | HTMLElement, frame: Frame): void => {
   let render = renderers.get(target)
   if (!render) {
     render = createRenderer(target)
     renderers.set(target, render)
   }
-  render.render(frame, assetBaseUrl)
+  render.render(frame)
+}
+
+export const renderFrame = (target: Document | HTMLElement, frame: Frame, assetBaseUrl?: string): void => {
+  renderPreparedFrame(target, prepareFrame(frame, assetBaseUrl))
 }
