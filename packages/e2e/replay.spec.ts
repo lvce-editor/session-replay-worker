@@ -90,7 +90,7 @@ test('starts at the first complete editor paint and returns to it when seeking o
   await page.getByRole('button', { exact: true, name: 'Play' }).click()
   await expect(slider).toHaveValue('0')
   await expect(surface.locator('.Editor')).toHaveText('first complete editor paint')
-  await page.clock.runFor(550)
+  await page.clock.resume()
   await expect(surface.locator('.Editor')).toHaveText('edited')
   await expect(page.getByRole('button', { exact: true, name: 'Play' })).toBeVisible()
 })
