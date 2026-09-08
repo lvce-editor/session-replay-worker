@@ -353,7 +353,9 @@ test('an explicit preview option overrides the saved setting and player disposal
   await expect(page.locator('iframe')).toHaveCount(0)
 })
 
-test('dragging the activity timeline updates the preview and progress before release and captures the pointer outside the chart', async ({ page }) => {
+test('dragging the activity timeline updates the preview and progress before release and captures the pointer outside the chart', async ({
+  page,
+}) => {
   await timeline(page)
   const chart = page.getByRole('img', { name: 'Session replay activity' })
   const bounds = (await chart.boundingBox())!
