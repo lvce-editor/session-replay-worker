@@ -1,5 +1,5 @@
 import { build } from 'esbuild'
-import { readFile } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { resolve, sep } from 'node:path'
 
@@ -35,10 +35,18 @@ const serve = async (req: IncomingMessage, res: ServerResponse): Promise<void> =
     if (root === site) relativePath = path.slice('/session-replay-worker/'.length) || 'index.html'
     else if (root === dist) relativePath = path.slice('/dist/'.length)
 
-    const file = resolve(root, relativePath)
+    let file = resolve(root, relativePath)
     if (!file.startsWith(`${root}${sep}`)) {
       res.writeHead(403).end()
       return
+    }
+    const info = await stat(file)
+    if (info.isDirectory()) {
+      if (!path.endsWith('/')) {
+        res.writeHead(301, { Location: `${path}/${new URL(req.url || '/', 'http://localhost').search}` }).end()
+        return
+      }
+      file = resolve(file, 'index.html')
     }
     const data = await readFile(file)
     let contentType = 'text/html'

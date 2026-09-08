@@ -24,7 +24,9 @@ The in-memory session limit is 64 MiB, with 750 KB per event and batches below t
 
 ## GitHub Pages
 
-Open exported JSON recordings at [the session replay player](https://lvce-editor.github.io/session-replay-worker/). Recordings are read locally in the browser and are not uploaded.
+Open exported JSON recordings at [the session replay player](https://lvce-editor.github.io/session-replay-worker/replay/). Recordings are read locally in the browser and are not uploaded.
+
+Run the shared browser e2e scenarios at [the tests page](https://lvce-editor.github.io/session-replay-worker/tests/), either together or through individual test links. The root page links to both tests and manual replay. Tests run in isolated frames using the built worker, with pass/fail results shown on the page. Playwright runs this same browser suite in CI and adds file upload, persistence, keyboard, and viewport checks.
 
 `npm run build:static` creates the site in `.tmp/static`. Pushes to `main` deploy that directory to GitHub Pages after the tests pass. The repository's Pages source must be set to GitHub Actions.
 

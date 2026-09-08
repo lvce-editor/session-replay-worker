@@ -1,4 +1,4 @@
-import { mountPlayer } from '../../session-replay-worker/src/api/player.ts'
+import { mountPlayer } from '../../../session-replay-worker/src/api/player.ts'
 
 const input = document.querySelector<HTMLInputElement>('#session')!
 const error = document.querySelector<HTMLElement>('#error')!
@@ -11,7 +11,7 @@ input.addEventListener('change', async () => {
   error.textContent = ''
   try {
     const session = JSON.parse(await file.text())
-    await mountPlayer(player, { workerUrl: new URL('./dist/sessionReplayWorkerMain.js', import.meta.url), source: { session } })
+    await mountPlayer(player, { workerUrl: new URL('../dist/sessionReplayWorkerMain.js', import.meta.url), source: { session } })
   } catch (cause) {
     error.textContent = `Cannot open recording: ${cause instanceof Error ? cause.message : String(cause)}`
   } finally {

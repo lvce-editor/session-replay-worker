@@ -17,5 +17,5 @@
     "composite": true,
     "rootDir": ".."
   },
-  "include": ["*.ts", "../session-replay-worker/src/api"]
+  "include": ["*.ts", "browser/**/*.ts", "../session-replay-worker/src/api"]
 }
