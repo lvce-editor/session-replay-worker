@@ -77,9 +77,10 @@ test('recursively proxies transferred direct renderer ports and records them onc
   const { port1, port2 } = new MessageChannel()
   cleanups.push(() => port1.close())
   const response = receive(remote)
-  local.postMessage({ method: 'HandleMessagePort.handleMessagePort', params: [port2, 'Explorer'] }, [port2])
+  local.postMessage({ method: 'HandleMessagePort.handleMessagePort', params: [port2, 'Explorer', port2] }, [port2])
   const result = await response
   const rendererPort = result.params[0]
+  expect(result.params[2]).toBe(rendererPort)
   cleanups.push(() => rendererPort.close())
   const rendered = receive(rendererPort)
   port1.postMessage({ id: 1, method: 'Viewlet.queueCommands', params: [4, []] })
@@ -165,4 +166,22 @@ test('masked and ignored virtual nodes do not retain attribute or textContent se
       JSON.stringify(serialize({ method: 'Viewlet.setTreePatches', params: [1, [{ key: 'title', type: 3, value: 'private-update' }]] })),
     ).not.toContain('private-')
   }
+})
+
+test('excluded replies preserve id types and are consumed only once', async () => {
+  const recorded: ProxyMessage[] = []
+  const { local, remote } = setup((data) => {
+    recorded.push(data)
+  })
+  for (const id of [1, '1', '__proto__']) {
+    const request = receive(remote)
+    local.postMessage({ id, method: 'SessionReplay.getSession' })
+    await request
+  }
+  for (const id of ['1', 1, '__proto__', 1]) {
+    const response = receive(local)
+    remote.postMessage({ id, result: 'reply' })
+    await response
+  }
+  expect(recorded.map((entry) => entry.message)).toEqual([{ id: 1, result: 'reply' }])
 })

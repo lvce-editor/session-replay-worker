@@ -3,10 +3,10 @@ import { serializeMessage } from '../Capture/Capture.ts'
 const redacted = '[redacted]'
 const isMasked = (node: Record<string, unknown>): boolean =>
   node.inputType === 'password' || Object.hasOwn(node, 'data-session-replay-mask') || Object.hasOwn(node, 'data-session-replay-ignore')
-const structuralKeys = new Set(['type', 'childCount', 'uid'])
+const structuralKeys = ['type', 'childCount', 'uid']
 const redactNode = (node: Record<string, unknown>): void => {
   for (const key of Object.keys(node)) {
-    if (structuralKeys.has(key)) continue
+    if (structuralKeys.includes(key)) continue
     if (['text', 'value', 'textContent'].includes(key)) node[key] = redacted
     else if (key === 'inputType' && node[key] === 'password') continue
     else if (['data-session-replay-mask', 'data-session-replay-ignore'].includes(key)) node[key] = ''
@@ -27,14 +27,14 @@ const redactUpdates = (method: string, params: unknown[]): void => {
 
 // Preserve flat DOM/patch positions; never alter the live transport message.
 export const createMessageSerializer = (): ((message: unknown) => unknown) => {
-  const maskedViews = new Set<number>()
+  const maskedViews: Record<number, boolean> = Object.create(null)
   const sanitizeCommand = (method: string, params: unknown[], masked: boolean): void => {
     if (!method.startsWith('Viewlet.') || typeof params[0] !== 'number') return
     const uid = params[0]
     const patches = params[1]
     const masksInput = Array.isArray(patches) && patches.some((patch) => patch?.key === 'inputType' && patch.value === 'password')
-    if (masked || masksInput) maskedViews.add(uid)
-    if (maskedViews.has(uid)) redactUpdates(method, params)
+    if (masked || masksInput) maskedViews[uid] = true
+    if (maskedViews[uid]) redactUpdates(method, params)
   }
   const sanitizeArray = (array: unknown[]): boolean => {
     let remaining = 0

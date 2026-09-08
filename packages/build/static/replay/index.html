@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Session replay</title>
+    <style>
+      body {
+        background: #202020;
+        color: white;
+        font: 16px sans-serif;
+        margin: 32px;
+      }
+      a {
+        color: #9cdcfe;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Session replay</h1>
+      <nav><a href="../">Home</a> · <a href="../tests/">Tests</a></nav>
+      <p>Open a recording exported from LVCE Editor. The recording stays in your browser.</p>
+      <label for="session">Open session recording</label>
+      <input id="session" type="file" accept=".json,application/json" />
+      <p id="error" role="alert"></p>
+    </main>
+    <div id="player"></div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

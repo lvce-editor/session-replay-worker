@@ -40,6 +40,8 @@ test('the built package contains runnable exports without monorepo files', async
     'dist/api/types.js',
     'dist/capture.js',
     'dist/client.js',
+    'dist/parts/ActivityChart/ActivityChart.d.ts',
+    'dist/parts/ActivityChart/ActivityChart.js',
     'dist/parts/Api/Api.d.ts',
     'dist/parts/Api/Api.js',
     'dist/parts/AssetUrls/AssetUrls.d.ts',
@@ -52,12 +54,21 @@ test('the built package contains runnable exports without monorepo files', async
     'dist/parts/Player/Player.js',
     'dist/parts/PlayerStyles/PlayerStyles.d.ts',
     'dist/parts/PlayerStyles/PlayerStyles.js',
+    'dist/parts/RenderFrame/RenderFrame.d.ts',
+    'dist/parts/RenderFrame/RenderFrame.js',
+    'dist/parts/ReplayCss/ReplayCss.d.ts',
+    'dist/parts/ReplayCss/ReplayCss.js',
+    'dist/parts/ReplayDom/ReplayDom.d.ts',
+    'dist/parts/ReplayDom/ReplayDom.js',
+    'dist/parts/ReplayFonts/ReplayFonts.d.ts',
+    'dist/parts/ReplayFonts/ReplayFonts.js',
     'dist/parts/Transfer/Transfer.d.ts',
     'dist/parts/Transfer/Transfer.js',
     'dist/parts/Types/Types.d.ts',
     'dist/parts/Types/Types.js',
     'dist/player.js',
     'dist/sessionReplayWorkerMain.js',
+    'dist/settings.json',
     'package.json',
   ])
   for (const [name, exportedFunction] of [
@@ -88,12 +99,15 @@ test('a packed install exposes the renderer API, worker asset and TypeScript dec
       resolve(consumer, 'consumer.mjs'),
       `
       import assert from 'node:assert/strict'
+      import settings from '@lvce-editor/session-replay-worker/settings' with { type: 'json' }
       import { capture, createClient, mountPlayer } from '@lvce-editor/session-replay-worker/api'
       import { createClient as legacyClient } from '@lvce-editor/session-replay-worker/client'
       assert.equal(createClient, legacyClient)
       assert.equal(typeof capture, 'function')
       assert.equal(typeof mountPlayer, 'function')
       assert.ok(import.meta.resolve('@lvce-editor/session-replay-worker/worker').endsWith('/dist/sessionReplayWorkerMain.js'))
+      assert.deepEqual(settings.map(({ id }) => id), ['sessionReplay.enabled', 'sessionReplay.uploadEnabled', 'sessionReplay.allowAnonymousUploads'])
+      assert.ok(settings.every(({ category, description, heading, type, value }) => category && description && heading && type === 'boolean' && value === false))
     `,
     )
     execFileSync(process.execPath, ['consumer.mjs'], { cwd: consumer, stdio: 'pipe' })

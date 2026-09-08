@@ -34,7 +34,7 @@ for (const prefix of ['/icons/', '/static/0123456789abcdef/icons/', 'file:///opt
       await expect(replay.locator('.StatusBarIcon')).toHaveCSS('mask-image', 'url("http://127.0.0.1:4317/replay-assets/icons/source-control.svg")')
     }
     await expect
-      .poll(() => [...new Set(loaded)].toSorted((a, b) => a.localeCompare(b)))
+      .poll(() => loaded.filter((url, index) => loaded.indexOf(url) === index).toSorted((a, b) => a.localeCompare(b)))
       .toEqual(['/replay-assets/icons/files.svg', '/replay-assets/icons/icon.svg', '/replay-assets/icons/source-control.svg'])
   })
 }
@@ -63,4 +63,32 @@ test('configured replay assets do not allow unrelated recorded network requests'
   await page.getByRole('slider').fill('0')
   await expect(page.locator('.SessionReplaySurface').locator('img')).not.toHaveAttribute('src')
   expect(requests).toEqual([])
+})
+
+test('restores the title bar logo in legacy snapshots that omitted image sources', async ({ page }) => {
+  await page.route('**/replay-assets/icons/icon.svg', (route) =>
+    route.fulfill({
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><path d="M0 0h16v16H0z"/></svg>',
+      contentType: 'image/svg+xml',
+    }),
+  )
+  await page.goto('/')
+  await page.waitForFunction(() => window.api)
+  await page.evaluate(async () => {
+    const frame = window.api.capture(document)
+    frame.dom.children = [{ attrs: { class: 'TitleBarIconIcon' }, tag: 'img' }]
+    await window.api.mountPlayer(document.body, {
+      assetBaseUrl: '/replay-assets/',
+      source: { session: { events: [{ data: frame, sequence: 0, timestamp: 0, type: 'frame' }], version: 1 } },
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
+    })
+  })
+  await expect
+    .poll(() =>
+      page
+        .locator('.SessionReplaySurface')
+        .locator('.TitleBarIconIcon')
+        .evaluate((node: HTMLImageElement) => node.naturalWidth),
+    )
+    .toBe(16)
 })

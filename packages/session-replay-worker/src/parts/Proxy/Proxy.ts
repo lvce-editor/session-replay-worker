@@ -21,15 +21,20 @@ interface ProxyOptions {
   report?: (error: unknown) => void
 }
 
-const wrapPorts = (value: unknown, replacePort: (port: MessagePort) => MessagePort, seen = new Map<object, unknown>()): unknown => {
+const wrapPorts = (
+  value: unknown,
+  replacePort: (port: MessagePort) => MessagePort,
+  seen: { original: object; replacement: unknown }[] = [],
+): unknown => {
   if (!value || typeof value !== 'object') return value
-  if (seen.has(value)) return seen.get(value)
+  const previous = seen.find((entry) => entry.original === value)
+  if (previous) return previous.replacement
   if (value instanceof MessagePort) {
     const replacement = replacePort(value)
-    seen.set(value, replacement)
+    seen.push({ original: value, replacement })
     return replacement
   }
-  seen.set(value, value)
+  seen.push({ original: value, replacement: value })
   if (value instanceof Map) {
     const entries = [...value]
     value.clear()
@@ -45,12 +50,19 @@ const wrapPorts = (value: unknown, replacePort: (port: MessagePort) => MessagePo
   return value
 }
 
+const consumeReply = (replies: unknown[], id: unknown): boolean => {
+  const index = replies.findIndex((reply) => [reply].includes(id))
+  if (index === -1) return false
+  replies.splice(index, 1)
+  return true
+}
+
 // A raw transport bridge: RPC ids, notifications, errors and replies stay intact.
 export const createProxyRegistry = ({
   record,
   report = (): void => {},
 }: ProxyOptions): { create: (port: MessagePort, label?: string, renderer?: boolean) => MessagePort; dispose: () => void } => {
-  const connections = new Set<() => void>()
+  const connections: Record<number, () => void> = Object.create(null)
   let nextId = 0
   const createNestedPort = (connection: number, renderer: boolean, port: MessagePort): MessagePort => create(port, `${connection}/port`, renderer)
   const create = (port: MessagePort, label = 'renderer', renderer = true): MessagePort => {
@@ -64,16 +76,16 @@ export const createProxyRegistry = ({
         endpoint.onmessageerror = null
         endpoint.close()
       }
-      connections.delete(close)
+      delete connections[connection]
     }
-    connections.add(close)
-    const ignoredReplies = { 'from-renderer': new Set<unknown>(), 'to-renderer': new Set<unknown>() }
+    connections[connection] = close
+    const ignoredReplies: Record<ProxyMessage['direction'], unknown[]> = { 'from-renderer': [], 'to-renderer': [] }
     const forward = (source: MessagePort, target: MessagePort, direction: ProxyMessage['direction']): void => {
       source.onmessage = ({ data }: MessageEvent<RpcMessage>): void => {
         const opposite = direction === 'to-renderer' ? 'from-renderer' : 'to-renderer'
         const ignored = typeof data?.method === 'string' && data.method.startsWith('SessionReplay.')
-        if (ignored && data.id !== undefined) ignoredReplies[opposite].add(data.id)
-        const ignoredReply = !data?.method && ignoredReplies[direction].delete(data?.id)
+        if (ignored && data.id !== undefined && !ignoredReplies[opposite].includes(data.id)) ignoredReplies[opposite].push(data.id)
+        const ignoredReply = !data?.method && consumeReply(ignoredReplies[direction], data?.id)
         if (!ignored && !ignoredReply) {
           try {
             record({ connection, direction, label, message: data, renderer })
@@ -98,7 +110,7 @@ export const createProxyRegistry = ({
   return {
     create,
     dispose(): void {
-      for (const close of connections) close()
+      for (const close of Object.values(connections)) close()
     },
   }
 }

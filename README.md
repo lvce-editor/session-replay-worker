@@ -8,7 +8,9 @@ Set `sessionReplay.enabled` to `true` to save locally in IndexedDB. Set `session
 
 Use **SessionReplay: Download Session** to export a versioned JSON file. **SessionReplay: Replay Current Session** opens a new tab from local storage; **SessionReplay: Open Session** opens a file chooser in a separate replay tab. Local recordings are scoped to the editor origin/profile. Administrators can browse `/session-replay` on the backend and open recordings in new tabs.
 
-Uploads use the configured layout backend and existing bearer/cookie authentication. For temporary anonymous uploads, add `allowAnonymous=true` to the editor URL as well as enabling upload. Anonymous creation is permitted only by `POST /session-replay?allowAnonymous=true`; append requests also carry that opt-in and the server-issued write token. Invalid supplied authentication is not downgraded. Reads and the list always require administrator access.
+Uploads use the configured layout backend and existing bearer/cookie authentication. To allow uploads without signing in, enable `sessionReplay.allowAnonymousUploads` as well as `sessionReplay.uploadEnabled`. The anonymous upload setting defaults to `false`; the `allowAnonymous=true` editor URL parameter remains supported. Anonymous creation is permitted only by `POST /session-replay?allowAnonymous=true`; append requests also carry that opt-in and the server-issued write token. Invalid supplied authentication is not downgraded. Reads and the list always require administrator access.
+
+All three settings are declared in `packages/session-replay-worker/settings.json` with their types, defaults, and descriptions. The npm package includes them in `dist/settings.json`, also exposed as `@lvce-editor/session-replay-worker/settings`, for the editor's builtin settings collection.
 
 ## Format and rendering
 
@@ -24,7 +26,9 @@ The in-memory session limit is 64 MiB, with 750 KB per event and batches below t
 
 ## GitHub Pages
 
-Open exported JSON recordings at [the session replay player](https://lvce-editor.github.io/session-replay-worker/). Recordings are read locally in the browser and are not uploaded.
+Open exported JSON recordings at [the session replay player](https://lvce-editor.github.io/session-replay-worker/replay/). Recordings are read locally in the browser and are not uploaded.
+
+Run the shared browser e2e scenarios at [the tests page](https://lvce-editor.github.io/session-replay-worker/tests/), either together or through individual test links. The root page links to both tests and manual replay. Tests run in isolated frames using the built worker, with pass/fail results shown on the page. Playwright runs this same browser suite in CI and adds file upload, persistence, keyboard, and viewport checks.
 
 `npm run build:static` creates the site in `.tmp/static`. Pushes to `main` deploy that directory to GitHub Pages after the tests pass. The repository's Pages source must be set to GitHub Actions.
 
@@ -75,3 +79,5 @@ this option, playback continues to permit only embedded image and font data.
 Playback renders the recorded body in an inert shadow root, without an iframe or recorded head markup. Successive virtual trees are reconciled in place: unchanged frames do not mutate the replay DOM, and elements with an `id` or `data-uid` retain their identity across sibling insertions and removals. CSS uses adopted stylesheets that are replaced only when their content changes. Document theme classes and variables are applied to a synthetic root inside the replay. Imported CSS is filtered before adoption, and supported icon URLs are remapped only to the configured asset directory.
 
 `renderFrame(documentOrShadowRoot, frame, assetBaseUrl?)` retains rendering state per target. Passing a document mounts a replay surface in its body; passing a shadow root renders into that root.
+
+The replay shares its host document: viewport units, viewport media queries, and `rem` units use the host page. Font faces from filtered stylesheets are registered with the host document and released when the player is disposed.

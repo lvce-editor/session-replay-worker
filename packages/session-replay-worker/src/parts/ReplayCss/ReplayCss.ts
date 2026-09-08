@@ -5,16 +5,16 @@ import type { WalkOptionsNoVisit } from 'css-tree'
 import { generate, ident, parse, walk } from 'css-tree'
 import { resolveAssetUrl } from '../AssetUrls/AssetUrls.ts'
 
-const allowedRules = new Set(['media', 'supports', 'container', 'layer', 'font-face', 'keyframes', '-webkit-keyframes', 'property'])
+const allowedRules = ['media', 'supports', 'container', 'layer', 'font-face', 'keyframes', '-webkit-keyframes', 'property']
 // String-valued image sources and dynamic attr() URLs cannot be constrained to the asset directory.
-const blockedFunctions = new Set(['url', 'image-set', '-webkit-image-set', 'image', 'src', 'attr', 'paint'])
+const blockedFunctions = ['url', 'image-set', '-webkit-image-set', 'image', 'src', 'attr', 'paint']
 
 export const replayCss = (css: string, assetBaseUrl?: string, inline = false): string => {
   try {
     const ast = parse(css, { context: inline ? 'declarationList' : 'stylesheet', parseCustomProperty: true })
     walk(ast, {
       enter(node, item, list): symbol | undefined {
-        if (node.type === 'Atrule' && !allowedRules.has(ident.decode(node.name).toLowerCase())) {
+        if (node.type === 'Atrule' && !allowedRules.includes(ident.decode(node.name).toLowerCase())) {
           list.remove(item)
           return this.skip
         }
@@ -39,7 +39,7 @@ export const replayCss = (css: string, assetBaseUrl?: string, inline = false): s
         if (node.type !== 'Declaration') return undefined
         let unsafe = false
         walk(node.value, (value) => {
-          if (value.type === 'Raw' || (value.type === 'Function' && blockedFunctions.has(ident.decode(value.name).toLowerCase()))) unsafe = true
+          if (value.type === 'Raw' || (value.type === 'Function' && blockedFunctions.includes(ident.decode(value.name).toLowerCase()))) unsafe = true
           if (value.type === 'Url') {
             const resolved = resolveAssetUrl(value.value, assetBaseUrl)
             if (resolved) value.value = resolved

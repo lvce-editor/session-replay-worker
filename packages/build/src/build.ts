@@ -44,6 +44,7 @@ manifest.exports = {
   './capture': { types: './dist/api/capture.d.ts', default: './dist/api/capture.js' },
   './client': { types: './dist/api/client.d.ts', default: './dist/api/client.js' },
   './player': { types: './dist/api/player.d.ts', default: './dist/api/player.js' },
+  './settings': './dist/settings.json',
   './worker': './dist/sessionReplayWorkerMain.js',
 }
 execFileSync(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(worker, 'tsconfig.build.json')], { stdio: 'inherit' })
@@ -85,5 +86,6 @@ for (const name of ['capture', 'client', 'player']) {
 }
 
 await writeFile(join(dist, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
+await cp(join(worker, 'settings.json'), join(dist, 'dist/settings.json'))
 await cp(join(root, 'README.md'), join(dist, 'README.md'))
 await cp(join(root, 'LICENSE'), join(dist, 'LICENSE'))
