@@ -30,7 +30,7 @@ Open exported JSON recordings at [the session replay player](https://lvce-editor
 
 ## Development
 
-`npm run type-check` checks TypeScript types across the workspace projects. PR, main, and release workflows run this check.
+`npm run type-check` runs `tsc -b` using the root `tsconfig.json`, which references the self-contained configs in each package. The package configs use `composite` for incremental checking. The e2e config also includes the worker API sources imported by its browser fixture, while `tsconfig.tools.json` checks the root ESLint config and browser demo. PR, main, and release workflows run this check.
 
 `npm run lint` checks ESLint rules, Prettier formatting, and unused code and dependencies with Knip. Run `npm run format` to apply formatting.
 

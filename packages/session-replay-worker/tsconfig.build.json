@@ -1,6 +1,8 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "./tsconfig.json",
   "compilerOptions": {
+    "composite": false,
+    "target": "ES2022",
     "noEmit": false,
     "declaration": true,
     "rootDir": "src/api",
