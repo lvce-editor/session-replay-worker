@@ -130,7 +130,8 @@ test('captures platform metadata at start and preserves it in storage, export an
   const requests: Record<string, unknown>[] = []
   const recorder = createRecorder({
     fetch: async (_url, options) => {
-      requests.push(JSON.parse(String(options?.body)))
+      if (typeof options?.body !== 'string') throw new Error('Expected a JSON request body')
+      requests.push(JSON.parse(options.body))
       return Response.json({ id: 'remote', uploadToken: 'token' })
     },
     navigator,

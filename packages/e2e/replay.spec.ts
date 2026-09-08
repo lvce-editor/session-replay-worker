@@ -113,12 +113,12 @@ test('worker captures the recording browser metadata in local storage and export
     const database = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open('lvce-session-replays', 1)
       request.onsuccess = (): void => resolve(request.result)
-      request.onerror = (): void => reject(request.error)
+      request.onerror = (): void => reject(request.error || new Error('Could not read local session metadata'))
     })
     const stored = await new Promise((resolve, reject) => {
       const request = database.transaction('sessions').objectStore('sessions').get(window.localId)
       request.onsuccess = (): void => resolve(request.result)
-      request.onerror = (): void => reject(request.error)
+      request.onerror = (): void => reject(request.error || new Error('Could not read local session metadata'))
     })
     database.close()
     return { expected: { platform: navigator.platform, userAgent: navigator.userAgent }, exported: window.session, stored }
