@@ -22,6 +22,8 @@ export type ReplayEvent = { sequence: number; timestamp: number } & ({ type: 'fr
 export interface SessionMetadata {
   createdAt: string
   id: string
+  platform?: string
+  userAgent?: string
   version: number
 }
 

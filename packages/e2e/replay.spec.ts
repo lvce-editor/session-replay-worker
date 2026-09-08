@@ -107,6 +107,27 @@ test('replay controls fit a narrow viewport with usable pointer targets', async 
   expect(status!.x + status!.width).toBeLessThanOrEqual(320)
 })
 
+test('worker captures the recording browser metadata in local storage and export', async ({ page }) => {
+  await roundTrip(page)
+  const result = await page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('lvce-session-replays', 1)
+      request.onsuccess = (): void => resolve(request.result)
+      request.onerror = (): void => reject(request.error || new Error('Could not read local session metadata'))
+    })
+    const stored = await new Promise((resolve, reject) => {
+      const request = database.transaction('sessions').objectStore('sessions').get(window.localId)
+      request.onsuccess = (): void => resolve(request.result)
+      request.onerror = (): void => reject(request.error || new Error('Could not read local session metadata'))
+    })
+    database.close()
+    return { expected: { platform: navigator.platform, userAgent: navigator.userAgent }, exported: window.session, stored }
+  })
+  expect(result.expected.userAgent).toContain('Chrome/')
+  expect(result.exported).toMatchObject(result.expected)
+  expect(result.stored).toMatchObject(result.expected)
+})
+
 test('activity chart shows quiet gaps and peaks, and clicking it pauses and seeks', async ({ page }) => {
   await page.evaluate(async () => {
     const before = window.api.capture(document)
