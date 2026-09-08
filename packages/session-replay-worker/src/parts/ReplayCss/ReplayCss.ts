@@ -22,20 +22,6 @@ export const replayCss = (css: string, assetBaseUrl?: string, inline = false): s
           list.remove(item)
           return this.skip
         }
-        if (node.type === 'Rule') {
-          let unsafe = false
-          walk(node.prelude, (selector) => {
-            if (selector.type === 'PseudoClassSelector' && /^host(?:-context)?$/i.test(ident.decode(selector.name))) unsafe = true
-          })
-          if (unsafe) {
-            list.remove(item)
-            return this.skip
-          }
-        }
-        if (node.type === 'PseudoClassSelector' && ident.decode(node.name).toLowerCase() === 'root') {
-          item.data = { name: 'html', type: 'TypeSelector' }
-          return this.skip
-        }
         if (node.type !== 'Declaration') return undefined
         let unsafe = false
         walk(node.value, (value) => {

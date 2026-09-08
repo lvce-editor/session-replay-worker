@@ -19,7 +19,7 @@ const eventually = async (condition: () => boolean): Promise<void> => {
 }
 
 const editor = (): HTMLElement => document.querySelector('.Editor')!
-const replay = (): ShadowRoot => document.querySelector('.SessionReplaySurface')!.shadowRoot!
+const replay = (): HTMLElement => document.querySelector('.SessionReplaySurface')!
 const slider = (): HTMLInputElement => document.querySelector('input[type=range]')!
 const text = (selector: string): string => replay().querySelector(selector)?.textContent || ''
 const css = (selector: string, property: string): string => {
@@ -148,7 +148,8 @@ export const cases: { name: string; run: () => Promise<void> }[] = [
     run: async () =>
       withPlayer({ session: timeline() }, async () => {
         document.querySelector('button')!.click()
-        await eventually(() => slider().value === '1500')
+        // The slider rounds milliseconds, so it can reach 1500 before playback has stopped.
+        await eventually(() => slider().value === '1500' && document.querySelector('button')!.ariaLabel === 'Play')
         check(text('.Editor') === 'edited after typing', 'Final frame is missing')
         check(document.querySelector('button')!.ariaLabel === 'Play', 'Playback did not stop')
       }),

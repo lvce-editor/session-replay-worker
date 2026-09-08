@@ -24,7 +24,7 @@ export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source
   const client = createClient(workerUrl)
   container.replaceChildren()
   container.className = 'SessionReplay'
-  container.style.cssText = 'position:fixed;inset:0;display:flex;flex-direction:column;background:#202020;color:white;z-index:2147483647'
+  container.style.cssText = 'position:fixed;inset:0;margin:0;display:flex;flex-direction:column;background:#202020;color:white;z-index:2147483647'
   const document = container.ownerDocument
   const style = document.createElement('style')
   style.textContent = playerStyles
@@ -82,7 +82,7 @@ export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source
     const time = `${(position / 1000).toFixed(1)} / ${(duration / 1000).toFixed(1)} s`
     slider.ariaValueText = time
     status.textContent = time
-    renderFrame(surface.shadowRoot!, result.frame, assets?.href)
+    renderFrame(surface, result.frame, assets?.href)
   }
   const pause = (): void => {
     playing = false
@@ -147,7 +147,7 @@ export const mountPlayer = async (container: HTMLElement, { assetBaseUrl, source
     disposed = true
     pause()
     client.dispose()
-    disposeFrame(surface.shadowRoot!)
+    disposeFrame(surface)
     container.replaceChildren()
   }
 }
