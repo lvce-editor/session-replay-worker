@@ -37,7 +37,7 @@ for (const prefix of ['/static/old/extensions/', 'file:///opt/lvce/static/old/ex
       await expect.poll(() => replay.locator('.ExtensionImage').evaluate((node: HTMLImageElement) => node.naturalWidth)).toBe(16)
     }
     await expect
-      .poll(() => [...new Set(loaded)].toSorted())
+      .poll(() => [...new Set(loaded)].toSorted((a, b) => a.localeCompare(b)))
       .toEqual(['/replay-assets/extensions/builtin.chat-view-2/chat.svg', '/replay-assets/extensions/builtin.git/icons/dark/status-added.svg'])
   })
 }
