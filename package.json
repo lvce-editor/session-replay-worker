@@ -20,6 +20,7 @@
     "format:check": "prettier --check .",
     "lint": "eslint . && prettier --check . && knip --no-config-hints",
     "test": "npm test --workspaces --if-present",
+    "test:session-replay": "node scripts/test-session-replay.mjs",
     "type-check": "tsc -b"
   },
   "devDependencies": {

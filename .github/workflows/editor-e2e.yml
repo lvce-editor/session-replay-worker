@@ -1,0 +1,36 @@
+name: Editor integration
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  editor-e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+      - run: npm ci
+      - run: npm run build
+      - name: Check out editor fixture
+        uses: actions/checkout@v7
+        with:
+          repository: lvce-editor/lvce-editor
+          ref: c78d76777bdcd88416826cb25c41bd682ad4e175
+          path: .tmp/lvce-editor
+      - name: Install editor fixture
+        working-directory: .tmp/lvce-editor
+        run: npm ci
+      - name: Install browser dependencies
+        working-directory: .tmp/lvce-editor/packages/extension-host-worker-tests
+        run: npx playwright install --with-deps chromium
+      - name: Install worker under test
+        run: cp .tmp/dist/dist/sessionReplayWorkerMain.js .tmp/lvce-editor/packages/renderer-worker/node_modules/@lvce-editor/renderer-process/dist/sessionReplayWorkerMain.js
+      - name: Test session-replay
+        run: npm run test:session-replay
