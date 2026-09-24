@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@lvce-editor/eslint-config": "^18.9.0",
+    "@lvce-editor/test-with-playwright": "^22.38.6",
     "@types/node": "^24.13.3",
     "eslint": "^10.10.0",
     "knip": "^6.34.0",

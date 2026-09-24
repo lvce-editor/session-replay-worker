@@ -29,7 +29,7 @@ export const test: Test = async ({ Command, Editor, expect, FileSystem, Locator,
     if (session.events.every((event) => !(event.type === 'message' && event.data.renderer) || event.data.label === 'renderer')) {
       throw new Error('Direct view worker messages must pass through the recording proxy')
     }
-    // Load the published worker used by the renderer, independently of the running recording.
+    // Load the worker under test installed into the editor fixture, independently of the running recording.
     const workerUrl = new URL('/packages/renderer-worker/node_modules/@lvce-editor/renderer-process/dist/sessionReplayWorkerMain.js', import.meta.url)
     const worker = new Worker(workerUrl, { type: 'module' })
     let id = 0
