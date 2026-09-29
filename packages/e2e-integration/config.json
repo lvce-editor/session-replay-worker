@@ -1,0 +1,9 @@
+{
+  "artifacts": [
+    [
+      ".tmp/dist/dist/sessionReplayWorkerMain.js",
+      "packages/renderer-worker/node_modules/@lvce-editor/renderer-process/dist/sessionReplayWorkerMain.js"
+    ]
+  ],
+  "scripts": []
+}
