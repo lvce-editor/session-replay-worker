@@ -15,7 +15,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['packages/e2e/**/*.ts'],
+    files: ['packages/{e2e,e2e-integration}/**/*.ts'],
     rules: {
       'e2e/no-direct-click': 'off',
       // These are standalone Playwright tests, not LVCE command-runner tests.
@@ -45,5 +45,15 @@ export default defineConfig([
   },
   {
     ignores: ['**/playwright-report/**', '**/test-results/**'],
+  },
+  {
+    // The pinned application runtime and manual test workflow are intentional.
+    files: ['.github/workflows/integration.yml'],
+    rules: { 'github-actions/node-version-file': 'off', 'github-actions/on': 'off' },
+  },
+  {
+    // Preserve real DOM input events covered by the migrated application scenarios.
+    files: ['packages/e2e-integration/src/session-replay.settings.ts'],
+    rules: { '@typescript-eslint/no-deprecated': 'off' },
   },
 ])
