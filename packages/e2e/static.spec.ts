@@ -23,7 +23,9 @@ test('opens an exported recording from the GitHub Pages subdirectory', async ({ 
     mimeType: 'application/json',
     name: 'session.json',
   })
-  await expect(page.locator('.SessionReplaySurface').locator('body')).toHaveText('Recorded editor')
+  await expect(page.locator('.SessionReplaySurface')).toHaveText('Recorded editor')
+  await expect(page.locator('body')).toHaveCount(1)
+  await expect(page.locator('.SessionReplaySurface body')).toHaveCount(0)
   expect(workers).toEqual(['http://127.0.0.1:4317/session-replay-worker/dist/sessionReplayWorkerMain.js'])
 })
 

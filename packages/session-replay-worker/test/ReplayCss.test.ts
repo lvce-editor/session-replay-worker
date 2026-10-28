@@ -1,9 +1,9 @@
 import { expect, test } from '@jest/globals'
 import { replayCss } from '../src/parts/ReplayCss/ReplayCss.ts'
 
-test('preserves ordinary document selectors and theme variables', () => {
+test('remaps recorded body selectors while preserving theme variables', () => {
   expect(replayCss(':root { --color: red } body { color: var(--color) } :host { display:none }')).toBe(
-    ':root{--color:red}body{color:var(--color)}:host{display:none}',
+    ':root{--color:red}.SessionReplaySurface>div{color:var(--color)}:host{display:none}',
   )
 })
 

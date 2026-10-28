@@ -58,7 +58,7 @@ const createRenderer = (target: Document | HTMLElement): FrameRenderer => {
     const nextHeight = `${Math.max(1, Math.min(16_384, height))}px`
     if (surface.style.width !== nextWidth) surface.style.width = nextWidth
     if (surface.style.height !== nextHeight) surface.style.height = nextHeight
-    render(dom.tag === 'body' ? dom : { attrs: {}, checked: false, children: [dom], scroll: [0, 0], tag: 'body', value: '' })
+    render(dom)
   }
   const dispose = (): void => {
     document.adoptedStyleSheets = removeSheets()
