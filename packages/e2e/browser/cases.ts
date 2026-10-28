@@ -262,8 +262,8 @@ export const cases: { name: string; run: () => Promise<void> }[] = [
       document.documentElement.style.setProperty('--replay-color', 'rgb(100, 20, 30)')
       const height = `${window.innerHeight}px`
       await roundTrip(() => {
-        check(css('body > .Workspace', 'height') === height, 'Body root height was not restored')
-        check(css('body > .Workspace', 'color') === 'rgb(100, 20, 30)', 'Theme color was not restored')
+        check(css('.Workspace', 'height') === height, 'Body root height was not restored')
+        check(css('.Workspace', 'color') === 'rgb(100, 20, 30)', 'Theme color was not restored')
       })
     },
   },

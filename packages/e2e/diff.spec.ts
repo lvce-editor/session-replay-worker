@@ -108,7 +108,7 @@ test('adopts ordinary document CSS and preserves unrelated stylesheets across up
     const frame = window.api.capture(document)
     frame.styles = [':root { --replay-color: rgb(1, 2, 3) }', 'body { color: var(--replay-color) }']
     window.api.renderFrame(document, frame)
-    const body = document.querySelector('.SessionReplaySurface body')!
+    const body = document.querySelector('.SessionReplaySurface > div')!
     const sheets = [...document.adoptedStyleSheets]
     const before = getComputedStyle(body).color
     frame.styles[0] = ':root { --replay-color: rgb(4, 5, 6) }'
@@ -128,7 +128,9 @@ test('adopts ordinary document CSS and preserves unrelated stylesheets across up
       shared,
     }
   })
-  expect(result).toEqual({ after: 'rgb(4, 5, 6)', before: 'rgb(1, 2, 3)', preserved: true, replaced: true, retained: true, shared: 'rgb(4, 5, 6)' })
+  expect(result).toEqual({ after: 'rgb(4, 5, 6)', before: 'rgb(1, 2, 3)', preserved: true, replaced: true, retained: true, shared: 'rgb(0, 0, 0)' })
+  await expect(page.locator('body')).toHaveCount(1)
+  await expect(page.locator('.SessionReplaySurface body')).toHaveCount(0)
 })
 
 test('escaped CSS URLs and string image sources cannot request external resources', async ({ page }) => {
@@ -151,7 +153,7 @@ test('escaped CSS URLs and string image sources cannot request external resource
     window.api.renderFrame(document, frame)
   })
   await expect(page.locator('.SessionReplaySurface')).toBeVisible()
-  await expect(page.locator('.SessionReplaySurface div')).toHaveCSS('background-image', 'none')
+  await expect(page.locator('.SessionReplaySurface > div')).toHaveCSS('background-image', 'none')
   expect(requests).toEqual([])
 })
 
@@ -204,6 +206,8 @@ test('normal root and body CSS preserve replay layout and usable controls', asyn
   await expect(page.locator('html')).toHaveClass('RecordedTheme')
   await expect(page.locator('.SessionReplaySurface .Workspace')).toHaveCSS('height', '720px')
   await expect(page.locator('.SessionReplaySurface .Workspace')).toHaveCSS('color', 'rgb(12, 34, 56)')
+  await expect(page.locator('body')).toHaveCount(1)
+  await expect(page.locator('.SessionReplaySurface body')).toHaveCount(0)
   const controls = page.getByRole('group', { name: 'Session replay controls' })
   await expect(controls.getByRole('button')).toHaveCSS('padding', '0px')
   await expect(controls.getByRole('slider')).toHaveCSS('border-width', '0px')

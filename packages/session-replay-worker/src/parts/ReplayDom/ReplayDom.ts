@@ -47,7 +47,7 @@ export const normalizeDom = (root: ReplayNode, assetBaseUrl?: string): ReplayNod
   const visit = (value: ReplayNode, depth: number): ReplayNode => {
     if (++count > 100_000 || depth > 150 || !value || typeof value !== 'object') throw new Error('Invalid replay DOM')
     if (typeof value.text === 'string') return { text: value.text }
-    const tag = value.tag && tags.includes(value.tag) ? value.tag : 'div'
+    const tag = value.tag && tags.includes(value.tag) && value.tag !== 'body' ? value.tag : 'div'
     return {
       attrs: normalizeAttributes(value, tag, assetBaseUrl),
       checked: value.checked === true,
