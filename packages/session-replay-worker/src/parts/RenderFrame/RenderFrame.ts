@@ -69,10 +69,11 @@ const createRenderer = (target: Document | HTMLElement): FrameRenderer => {
       cursor = document.createElement('div')
       cursor.className = 'SessionReplayCursor'
       cursor.setAttribute('aria-hidden', 'true')
-      cursor.style.cssText = 'all:initial;position:absolute;top:0;left:0;z-index:2147483647;pointer-events:none;filter:drop-shadow(0 1px 1px #000a)'
+      cursor.style.cssText =
+        'all:initial;position:absolute;top:0;left:0;z-index:2147483647;pointer-events:none;filter:drop-shadow(1px 0 #fff) drop-shadow(-1px 0 #fff) drop-shadow(0 1px #fff) drop-shadow(0 -1px #fff)'
       const arrow = document.createElement('div')
       arrow.style.cssText =
-        'all:initial;display:block;width:16px;height:22px;background:#fff;clip-path:polygon(0 0,100% 60%,57% 63%,75% 93%,57% 100%,38% 68%,0 93%)'
+        'all:initial;display:block;width:16px;height:22px;background:#07141c;clip-path:polygon(0 0,100% 60%,57% 63%,75% 93%,57% 100%,38% 68%,0 93%)'
       cursor.append(arrow)
       surface.append(cursor)
     }
