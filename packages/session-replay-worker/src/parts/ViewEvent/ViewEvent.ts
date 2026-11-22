@@ -13,6 +13,7 @@ export type ViewEvent =
   | { type: 'togglePlay'; now: number }
   | { type: 'tick'; now: number }
   | { type: 'seek'; position: number; now: number }
+  | { type: 'seekBy'; offset: number; now: number }
   | { type: 'pointerDown'; point: TimelinePoint; now: number }
   | { type: 'pointerMove'; point: TimelinePoint; now: number }
   | { type: 'pointerUp'; pointerId: number }
