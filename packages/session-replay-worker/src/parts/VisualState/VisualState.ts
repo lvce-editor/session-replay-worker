@@ -5,6 +5,18 @@ import type { Patch, VirtualNode } from '../VisualDom/VisualDom.ts'
 import { createVisualDom } from '../VisualDom/VisualDom.ts'
 
 type Command = [string, ...any[]]
+
+const positiveDimension = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value) && value > 0
+
+// Older recordings lack resize messages. The title bar cannot be wider than the workbench.
+const getLegacyWidth = (styles: readonly string[], initialWidth: number): number => {
+  for (let index = styles.length - 1; index >= 0; index--) {
+    const match = /^\s*#Workbench\s*\{[^}]*?--TitleBarWidth:\s*(\d+(?:\.\d+)?)px\s*[;}]/.exec(styles[index])
+    if (match) return Math.max(initialWidth, Number(match[1]))
+  }
+  return initialWidth
+}
+
 interface Batch {
   commands: Command[]
   committed: boolean
@@ -16,6 +28,12 @@ interface Batch {
 export const createVisualState = (initial: Frame): { accept: (message: ProxyMessage) => void; frame: () => Frame } => {
   const frame = structuredClone(initial)
   const dom = createVisualDom()
+  let viewport: Frame['viewport'] | undefined
+  const resize = (params: unknown): void => {
+    if (!Array.isArray(params)) return
+    const [width, height] = params
+    if (positiveDimension(width) && positiveDimension(height)) viewport = [width, height]
+  }
   const { append, clear, detach, element, find, patch, property, render, replace, views } = dom
   // Stylesheets and transactions retain arrival order, including numeric ids.
   let sheets: { uid: unknown; text: string }[] = (frame.styles || []).map((text, index) => ({ text, uid: `initial-${index}` }))
@@ -165,6 +183,8 @@ export const createVisualState = (initial: Frame): { accept: (message: ProxyMess
       if (direction === 'to-renderer') {
         if (message.method === 'Viewlet.queueCommands') calls[key] = message.params as [number, Command[]]
         else apply(message.method, message.params)
+      } else if (message.method === 'Layout.handleResize') {
+        resize(message.params)
       } else if (Object.hasOwn(calls, key)) {
         const [uid, commands] = calls[key]
         delete calls[key]
@@ -178,7 +198,9 @@ export const createVisualState = (initial: Frame): { accept: (message: ProxyMess
       }
     },
     frame(): Frame {
-      return { ...frame, styles: sheets.map((sheet) => sheet.text) }
+      const styles = sheets.map((sheet) => sheet.text)
+      const [width, height] = frame.viewport || [1280, 720]
+      return { ...frame, styles, viewport: viewport || [getLegacyWidth(styles, width), height] }
     },
   }
 }

@@ -15,6 +15,7 @@ export const createReplayMessageFilter = (): ((data: ProxyMessage) => boolean) =
       }
       return true
     }
+    if (method === 'Layout.handleResize') return true
     if (method || id === undefined) return false
     const pending = replies[connection]
     const index = pending?.indexOf(id) ?? -1
