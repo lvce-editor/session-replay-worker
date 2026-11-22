@@ -41,7 +41,7 @@ export const createRecorder = ({
     return metadata.id
   }
   const record = async (...[type, data]: RecordParams): Promise<void> => {
-    if (!metadata) return
+    if (!metadata || (type === 'pointermove' && options.recordPointerMovement === false)) return
     const event = { data, sequence: events.length, timestamp: Math.max(events.at(-1)?.timestamp || 0, now() - origin), type } as ReplayEvent
     const eventSize = bytes(event)
     if (eventSize > maxEventBytes || size + eventSize > maxSessionBytes)

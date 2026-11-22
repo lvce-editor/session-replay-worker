@@ -1,9 +1,10 @@
-export { capture, observe, serializeMessage } from '../Capture/Capture.ts'
+export { capture, observe, observePointer, serializeMessage } from '../Capture/Capture.ts'
 export { createClient } from '../Client/Client.ts'
 export { mountPlayer, renderFrame } from '../Player/Player.ts'
 export type {
   Frame,
   PlayerOptions,
+  PointerPosition,
   RecordingOptions,
   RecordingStatus,
   RecordParams,

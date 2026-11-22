@@ -1,4 +1,4 @@
-import type { Frame, ReplayNode } from '../Types/Types.ts'
+import type { Frame, PointerPosition, ReplayNode } from '../Types/Types.ts'
 
 const omitted = ['SCRIPT', 'STYLE', 'LINK', 'META', 'BASE', 'NOSCRIPT']
 const unsupported = ['IFRAME', 'WEBVIEW', 'CANVAS', 'OBJECT', 'EMBED', 'VIDEO', 'AUDIO']
@@ -107,6 +107,50 @@ export const observe = (
     for (const type of ['input', 'change', 'scroll']) document.removeEventListener(type, mark, true)
     document.defaultView!.removeEventListener('resize', mark)
   }
+}
+
+// Coalesce high-frequency browser events and keep at most one write in flight.
+export const observePointer = (
+  document: Document,
+  record: (position: PointerPosition) => Promise<void>,
+  onError: (error: unknown) => void,
+): (() => void) => {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let latest: PointerPosition | undefined
+  let stopped = false
+  const stop = (): void => {
+    stopped = true
+    clearTimeout(timer)
+    document.removeEventListener('pointermove', move, true)
+  }
+  const flush = async (): Promise<void> => {
+    const position = latest!
+    latest = undefined
+    try {
+      await record(position)
+    } catch (error) {
+      if (stopped) return
+      stop()
+      onError(error)
+      return
+    }
+    timer = undefined
+    schedule()
+  }
+  const schedule = (): void => {
+    if (!stopped && latest && timer === undefined) {
+      timer = setTimeout(() => {
+        void flush()
+      }, 50)
+    }
+  }
+  const move = (event: PointerEvent): void => {
+    if (!event.isTrusted || !event.isPrimary) return
+    latest = [Math.round(event.clientX), Math.round(event.clientY)]
+    schedule()
+  }
+  document.addEventListener('pointermove', move, { capture: true, passive: true })
+  return stop
 }
 
 export const serializeMessage = (message: unknown): unknown => {

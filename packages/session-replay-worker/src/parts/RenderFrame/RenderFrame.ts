@@ -26,6 +26,7 @@ const createRenderer = (target: Document | HTMLElement): FrameRenderer => {
   const originalTheme = root.style.cssText
   const Sheet = document.defaultView!.CSSStyleSheet
   const render = createDomRenderer(surface)
+  let cursor: HTMLElement | undefined
   let sheets: CSSStyleSheet[] = []
   let previousStyles: string[] = []
   let previousClass = originalClass
@@ -59,8 +60,28 @@ const createRenderer = (target: Document | HTMLElement): FrameRenderer => {
     if (surface.style.width !== nextWidth) surface.style.width = nextWidth
     if (surface.style.height !== nextHeight) surface.style.height = nextHeight
     render(dom)
+    if (!frame.pointer) {
+      cursor?.remove()
+      cursor = undefined
+      return
+    }
+    if (!cursor) {
+      cursor = document.createElement('div')
+      cursor.className = 'SessionReplayCursor'
+      cursor.setAttribute('aria-hidden', 'true')
+      cursor.style.cssText =
+        'all:initial;position:absolute;top:0;left:0;z-index:2147483647;pointer-events:none;filter:drop-shadow(1px 0 #fff) drop-shadow(-1px 0 #fff) drop-shadow(0 1px #fff) drop-shadow(0 -1px #fff)'
+      const arrow = document.createElement('div')
+      arrow.style.cssText =
+        'all:initial;display:block;width:16px;height:22px;background:#07141c;clip-path:polygon(0 0,100% 60%,57% 63%,75% 93%,57% 100%,38% 68%,0 93%)'
+      cursor.append(arrow)
+      surface.append(cursor)
+    }
+    const [x, y] = frame.pointer
+    cursor.style.transform = `translate(${x}px, ${y}px)`
   }
   const dispose = (): void => {
+    cursor?.remove()
     document.adoptedStyleSheets = removeSheets()
     if (root.className === previousClass) root.className = originalClass
     if (root.style.cssText === appliedTheme) root.style.cssText = originalTheme
