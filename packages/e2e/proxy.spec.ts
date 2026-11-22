@@ -10,8 +10,11 @@ test('startup IPC bursts do not stop visual command recording', async ({ page })
     await client.invoke('start', { local: true, upload: false }, initial)
     const renderer = await client.invokeAndTransfer('proxy', port2)
     const received = new Promise<void>((resolve) => {
+      port1.onmessage = ({ data }): void => {
+        if (data.method === 'Layout.handleResize') resolve()
+      }
       renderer.onmessage = ({ data }): void => {
-        if (data.method === 'Viewlet.appendToBody') resolve()
+        if (data.method === 'Viewlet.appendToBody') renderer.postMessage({ method: 'Layout.handleResize', params: [1600, 900] })
       }
     })
     try {
@@ -43,7 +46,8 @@ test('startup IPC bursts do not stop visual command recording', async ({ page })
     }
   })
   expect(result.status.error).toBe('')
-  expect(result.session.events).toHaveLength(4)
+  expect(result.session.events).toHaveLength(5)
+  expect(result.replay.frame.viewport).toEqual([1600, 900])
   expect(JSON.stringify(result.replay.frame.dom)).toContain('before proxied edit')
   expect(result.saved.frame).toEqual(result.replay.frame)
 })

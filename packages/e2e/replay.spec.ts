@@ -662,3 +662,61 @@ test('preview controls remain separate from recorded input controls', async ({ p
   await page.getByRole('slider').hover()
   await expect(page.locator('.SessionReplayPreview')).toBeVisible()
 })
+
+test('keeps a resized command replay wide enough to show the right edge', async ({ page }) => {
+  await page.setViewportSize({ height: 1000, width: 1680 })
+  await page.evaluate(async () => {
+    const commands = [
+      ['Viewlet.createFunctionalRoot', 'Layout', 1, true],
+      [
+        'Viewlet.setDom2',
+        1,
+        [
+          { childCount: 1, id: 'Workbench', type: 4 },
+          { childCount: 0, id: 'right-edge', type: 4 },
+        ],
+      ],
+      ['Viewlet.appendToBody', 1],
+      [
+        'Viewlet.setCss',
+        1,
+        '#Workbench { width: 100%; height: 100%; --TitleBarWidth: 800px; } #right-edge { position: absolute; left: calc(var(--TitleBarWidth) - 20px); width: 20px; height: 20px; background: red; }',
+      ],
+      [
+        'Viewlet.setCss',
+        1,
+        '#Workbench { width: 100%; height: 100%; --TitleBarWidth: 1600px; } #right-edge { position: absolute; left: calc(var(--TitleBarWidth) - 20px); width: 20px; height: 20px; background: red; }',
+      ],
+    ]
+    await window.api.mountPlayer(document.body, {
+      source: {
+        session: {
+          events: [
+            {
+              data: { commandReplay: true, dom: { children: [], tag: 'body' }, styles: [], viewport: [800, 600] },
+              sequence: 0,
+              timestamp: 0,
+              type: 'frame',
+            },
+            ...commands.map(([method, ...params], index) => ({
+              data: { connection: 1, direction: 'to-renderer', message: { method, params }, renderer: true },
+              sequence: index + 1,
+              timestamp: index === 4 ? 1000 : 0,
+              type: 'message',
+            })),
+          ],
+          version: 1,
+        },
+      },
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
+    })
+  })
+  const surface = page.locator('.SessionReplaySurface')
+  const slider = page.getByRole('slider')
+  await expect(surface).toHaveCSS('width', '800px')
+  await slider.press('End')
+  await expect(surface).toHaveCSS('width', '1600px')
+  await expect(surface.locator('#right-edge')).toBeInViewport()
+  await slider.press('Home')
+  await expect(surface).toHaveCSS('width', '800px')
+})
