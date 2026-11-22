@@ -104,14 +104,20 @@ test('a packed install exposes the renderer API, worker asset and TypeScript dec
       `
       import assert from 'node:assert/strict'
       import settings from '@lvce-editor/session-replay-worker/settings' with { type: 'json' }
-      import { capture, createClient, mountPlayer } from '@lvce-editor/session-replay-worker/api'
+      import { capture, createClient, mountPlayer, observePointer } from '@lvce-editor/session-replay-worker/api'
       import { createClient as legacyClient } from '@lvce-editor/session-replay-worker/client'
       assert.equal(createClient, legacyClient)
       assert.equal(typeof capture, 'function')
       assert.equal(typeof mountPlayer, 'function')
+      assert.equal(typeof observePointer, 'function')
       assert.ok(import.meta.resolve('@lvce-editor/session-replay-worker/worker').endsWith('/dist/sessionReplayWorkerMain.js'))
-      assert.deepEqual(settings.map(({ id }) => id), ['sessionReplay.enabled', 'sessionReplay.uploadEnabled', 'sessionReplay.allowAnonymousUploads'])
-      assert.ok(settings.every(({ category, description, heading, type, value }) => category && description && heading && type === 'boolean' && value === false))
+      assert.deepEqual(settings.map(({ id, value }) => [id, value]), [
+        ['sessionReplay.enabled', false],
+        ['sessionReplay.uploadEnabled', false],
+        ['sessionReplay.allowAnonymousUploads', false],
+        ['sessionReplay.recordPointerMovement', true],
+      ])
+      assert.ok(settings.every(({ category, description, heading, type }) => category && description && heading && type === 'boolean'))
     `,
     )
     execFileSync(process.execPath, ['consumer.mjs'], { cwd: consumer, stdio: 'pipe' })
@@ -119,7 +125,7 @@ test('a packed install exposes the renderer API, worker asset and TypeScript dec
       resolve(consumer, 'consumer.mts'),
       `
       import { capture, createClient, mountPlayer, type Frame, type Session } from '@lvce-editor/session-replay-worker/api'
-      import { observe } from '@lvce-editor/session-replay-worker/capture'
+      import { observe, observePointer } from '@lvce-editor/session-replay-worker/capture'
       import { createClient as legacyClient } from '@lvce-editor/session-replay-worker/client'
       import { renderFrame } from '@lvce-editor/session-replay-worker/player'
       const client = createClient(new URL('https://example.test/worker.js'))
@@ -130,6 +136,7 @@ test('a packed install exposes the renderer API, worker asset and TypeScript dec
       const result = await client.invoke('seek', 100)
       renderFrame(document, result.frame)
       observe(document, (type, data) => client.invoke('record', type, data), console.error)
+      observePointer(document, (position) => client.invoke('record', 'pointermove', position), console.error)
       await mountPlayer(document.body, { workerUrl: 'worker.js', source: { session } })
       legacyClient('worker.js').dispose()
       // @ts-expect-error unknown command

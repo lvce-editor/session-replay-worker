@@ -58,7 +58,10 @@ const commands: WorkerCommands = {
   },
   preview: (timestamp) => content.preview(timestamp),
   proxy: (port) => proxies.create(port),
-  record: (...params) => recorder.record(...params),
+  async record(...params) {
+    if (!recording) return
+    await recorder.record(...params)
+  },
   seek: (timestamp) => content.seek(timestamp),
   'SessionReplay.create': view.create,
   'SessionReplay.dispatch': view.dispatch,

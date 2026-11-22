@@ -11,15 +11,20 @@ export interface ReplayNode {
   value?: string
 }
 
+export type PointerPosition = [x: number, y: number]
+
 export interface Frame {
   commandReplay?: boolean
   documentElement?: { className: string; style: string }
   dom: ReplayNode
+  pointer?: PointerPosition
   styles: string[]
   viewport: [number, number]
 }
 
-export type ReplayEvent = { sequence: number; timestamp: number } & ({ type: 'frame'; data: Frame } | { type: 'message'; data: unknown })
+export type ReplayEvent = { sequence: number; timestamp: number } & (
+  { type: 'frame'; data: Frame } | { type: 'message'; data: unknown } | { type: 'pointermove'; data: PointerPosition }
+)
 
 export interface SessionMetadata {
   createdAt: string
@@ -36,6 +41,7 @@ export interface Session extends SessionMetadata {
 export interface RecordingOptions {
   endpoint?: string
   local: boolean
+  recordPointerMovement?: boolean
   token?: string
   upload: boolean
 }
@@ -58,7 +64,7 @@ export interface SeekResult {
 
 // Imported recordings are untrusted until validated by the worker.
 export type ReplaySource = { localId: string } | { url: string } | { session: unknown }
-export type RecordParams = [type: 'frame', data: Frame] | [type: 'message', data: unknown]
+export type RecordParams = [type: 'frame', data: Frame] | [type: 'message', data: unknown] | [type: 'pointermove', data: PointerPosition]
 
 export interface WorkerCommands {
   'SessionReplay.create'(uid: number, enabled: boolean, assetBaseUrl?: string): ViewRender

@@ -8,6 +8,7 @@ export const getActivity = (events: readonly ReplayEvent[], duration: number, st
   if (duration <= 0) return counts
   let initialFrame = true
   for (const event of events) {
+    if (event.type === 'pointermove') continue
     if (event.type === 'frame' && initialFrame) {
       initialFrame = false
       continue

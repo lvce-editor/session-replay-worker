@@ -22,5 +22,13 @@
     "id": "sessionReplay.allowAnonymousUploads",
     "type": "boolean",
     "value": false
+  },
+  {
+    "category": "workbench",
+    "description": "Records pointer movement in local and uploaded session replays. Reload the window to apply changes.",
+    "heading": "Record Pointer Movement",
+    "id": "sessionReplay.recordPointerMovement",
+    "type": "boolean",
+    "value": true
   }
 ]

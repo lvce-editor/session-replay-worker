@@ -720,3 +720,41 @@ test('keeps a resized command replay wide enough to show the right edge', async 
   await slider.press('Home')
   await expect(surface).toHaveCSS('width', '800px')
 })
+
+test('records real pointer moves and replays their coordinates when seeking', async ({ page }) => {
+  await page.evaluate(async () => {
+    const client = window.api.createClient('/dist/sessionReplayWorkerMain.js')
+    await client.invoke('start', { local: false, upload: false })
+    await client.invoke('record', 'frame', window.api.capture(document))
+    let recorded = 0
+    const stop = window.api.observePointer(
+      document,
+      async (position) => {
+        await client.invoke('record', 'pointermove', position)
+        recorded++
+        document.body.dataset.recordedPointers = String(recorded)
+        if (recorded !== 2) return
+        stop()
+        const session = await client.invoke('export')
+        client.dispose()
+        await window.api.mountPlayer(document.body, { source: { session }, workerUrl: '/dist/sessionReplayWorkerMain.js' })
+      },
+      (error) => {
+        throw error
+      },
+    )
+  })
+  await page.mouse.move(123, 145)
+  await expect(page.locator('body')).toHaveAttribute('data-recorded-pointers', '1')
+  await page.mouse.move(303, 305)
+  const slider = page.getByRole('slider')
+  await expect(slider).toBeEnabled()
+  const cursor = page.locator('.SessionReplayCursor')
+  await expect(cursor).toHaveCount(0)
+  await slider.focus()
+  await page.keyboard.press('End')
+  await expect(cursor).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 303, 305)')
+  await expect(cursor).toHaveCSS('pointer-events', 'none')
+  await page.keyboard.press('Home')
+  await expect(cursor).toHaveCount(0)
+})

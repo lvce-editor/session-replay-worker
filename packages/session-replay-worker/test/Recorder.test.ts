@@ -156,3 +156,27 @@ test('captures platform metadata at start and preserves it in storage, export an
     expect(request).not.toHaveProperty('platform')
   }
 })
+
+test.each([false, true])('seeks through pointer moves in a recording with commandReplay %s', (commandReplay) => {
+  const session = loadContent({
+    events: [
+      { data: { ...frame('initial'), commandReplay }, sequence: 0, timestamp: 0, type: 'frame' },
+      { data: [12, 34], sequence: 1, timestamp: 50, type: 'pointermove' },
+      { data: [56, 78], sequence: 2, timestamp: 100, type: 'pointermove' },
+    ],
+    version: 1,
+  })
+  expect(session.seek(49).frame.pointer).toBeUndefined()
+  expect(session.seek(50).frame.pointer).toEqual([12, 34])
+  expect(session.preview(100).frame.pointer).toEqual([56, 78])
+  expect(session.seek(75).frame.pointer).toEqual([12, 34])
+  expect(session.seek(0).frame.pointer).toBeUndefined()
+  expect(session.activity).toEqual([0])
+})
+
+test.each([undefined, true, false])('applies the pointer recording option %s', async (recordPointerMovement) => {
+  const recorder = createRecorder({})
+  await recorder.start({ local: false, recordPointerMovement, upload: false })
+  await recorder.record('pointermove', [12, 34])
+  expect(recorder.export().events.map(({ data }) => data)).toEqual(recordPointerMovement === false ? [] : [[12, 34]])
+})
