@@ -1,4 +1,4 @@
-// cspell:ignore valuetext
+// cspell:ignore keyshortcuts valuetext
 import type { SessionReplayState } from '../SessionReplayState/SessionReplayState.ts'
 import type { ReplayNode } from '../Types/Types.ts'
 import { getActivityChart } from '../ActivityChart/ActivityChart.ts'
@@ -19,11 +19,14 @@ const getControlsVirtualDom = (state: SessionReplayState): ReplayNode => {
   )
   const maximum = String(Math.ceil(duration))
   return element('div', { 'aria-label': 'Session replay controls', class: 'SessionReplayControls', role: 'group' }, [
-    element('button', { ...disabled, 'aria-label': label, class: 'SessionReplayPlay', title: label, type: 'button' }, [icon]),
+    element('button', { ...disabled, 'aria-keyshortcuts': 'Space', 'aria-label': label, class: 'SessionReplayPlay', title: label, type: 'button' }, [
+      icon,
+    ]),
     getActivityChart(state.activity, fraction),
     {
       ...element('input', {
         ...disabled,
+        'aria-keyshortcuts': 'ArrowLeft ArrowRight',
         'aria-label': 'Session replay position',
         'aria-valuetext': time,
         class: 'SessionReplayPosition',

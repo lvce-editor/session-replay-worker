@@ -176,8 +176,8 @@ test('starts at the first complete editor paint and returns to it when seeking o
   await expect(page.getByRole('button', { exact: true, name: 'Play' })).toBeVisible()
 })
 
-const timeline = async (page: Page): Promise<void> =>
-  page.evaluate(async () => {
+const timeline = async (page: Page, duration = 1500): Promise<void> =>
+  page.evaluate(async (duration) => {
     const before = window.api.capture(document)
     document.querySelector('.Editor')!.textContent = 'edited after typing'
     document.querySelector('.Explorer')!.remove()
@@ -188,14 +188,14 @@ const timeline = async (page: Page): Promise<void> =>
           events: [
             { data: before, sequence: 0, timestamp: 0, type: 'frame' },
             { data: after, sequence: 1, timestamp: 1000, type: 'frame' },
-            { data: {}, sequence: 2, timestamp: 1500, type: 'message' },
+            { data: {}, sequence: 2, timestamp: duration, type: 'message' },
           ],
           version: 1,
         },
       },
       workerUrl: '/dist/sessionReplayWorkerMain.js',
     })
-  })
+  }, duration)
 
 test('local recordings survive page reload', async ({ page }) => {
   await roundTrip(page)
@@ -235,6 +235,41 @@ test('replay icon button supports keyboard play, pause and seeking', async ({ pa
   await page.keyboard.press('Home')
   await expect(slider).toHaveValue('0')
   await expect(slider).toHaveCSS('--replay-progress', '0%')
+})
+
+test('replay shortcuts toggle playback and seek in five-second steps', async ({ page }) => {
+  await timeline(page, 12_000)
+  await page.clock.install({ time: 0 })
+  await page.clock.pauseAt(1000)
+  const play = page.getByRole('button', { exact: true, name: 'Play' })
+  const pause = page.getByRole('button', { exact: true, name: 'Pause' })
+  const slider = page.getByRole('slider')
+
+  await page.keyboard.press('Space')
+  await expect(pause).toBeVisible()
+  await page.keyboard.press('Space')
+  await expect(play).toBeVisible()
+
+  await page.keyboard.press('ArrowRight')
+  await expect(slider).toHaveValue('5000')
+  await slider.focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(slider).toHaveValue('10000')
+  await page.keyboard.press('ArrowRight')
+  await expect(slider).toHaveValue('12000')
+  await page.keyboard.press('ArrowLeft')
+  await expect(slider).toHaveValue('7000')
+  await page.keyboard.press('ArrowLeft')
+  await expect(slider).toHaveValue('2000')
+  await page.keyboard.press('ArrowLeft')
+  await expect(slider).toHaveValue('0')
+  await expect(slider).toBeFocused()
+
+  const previews = page.getByRole('checkbox', { name: 'Timeline previews' })
+  await previews.focus()
+  await page.keyboard.press('Space')
+  await expect(previews).not.toBeChecked()
+  await expect(play).toBeVisible()
 })
 
 test('replay controls fit a narrow viewport with usable pointer targets', async ({ page }) => {

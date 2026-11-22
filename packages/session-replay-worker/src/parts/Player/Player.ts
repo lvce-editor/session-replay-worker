@@ -8,6 +8,7 @@ import { createTimelinePreview } from '../TimelinePreview/TimelinePreview.ts'
 export { renderFrame } from '../RenderFrame/RenderFrame.ts'
 
 const settingKey = 'sessionReplay.timelinePreviewEnabled'
+const keyboardSeekStep = 5000
 
 export const mountPlayer = async (
   container: HTMLElement,
@@ -176,7 +177,27 @@ export const mountPlayer = async (
     target.addEventListener('pointercancel', hide)
   }
   const keydown = (event: KeyboardEvent): void => {
-    if (event.key === 'Escape') hide()
+    if (event.key === 'Escape') {
+      hide()
+      return
+    }
+    if (event.defaultPrevented || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || play.disabled) return
+    const [target] = event.composedPath()
+    if (target !== play && target !== slider) {
+      if (target !== document.body && target !== document.documentElement) return
+      if (document.querySelectorAll('.SessionReplay').length !== 1) return
+    }
+    switch (event.key) {
+      case ' ':
+        event.preventDefault()
+        if (!event.repeat) seek({ now: performance.now(), type: 'togglePlay' })
+        break
+      case 'ArrowLeft':
+      case 'ArrowRight':
+        event.preventDefault()
+        seek({ now: performance.now(), offset: event.key === 'ArrowLeft' ? -keyboardSeekStep : keyboardSeekStep, type: 'seekBy' })
+        break
+    }
   }
   view.addEventListener('resize', hide)
   view.addEventListener('blur', hide)

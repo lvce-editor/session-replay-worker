@@ -20,6 +20,10 @@ export const dispatch = (state: SessionReplayState, event: ViewEvent): SessionRe
       return Preview.preview(state, event.point)
     case 'seek':
       return seek(state, event.position, event.now)
+    case 'seekBy': {
+      const position = state.playing ? event.now - state.origin : state.position
+      return seek(state, position + event.offset, event.now)
+    }
     case 'setPreviewEnabled':
       return Preview.setPreviewEnabled(state, event.enabled)
     case 'tick':
