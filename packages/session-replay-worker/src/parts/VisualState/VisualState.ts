@@ -94,8 +94,12 @@ export const createVisualState = (initial: Frame): { accept: (message: ProxyMess
     if (sheet) sheet.text = text
     else sheets.push({ text, uid })
   }
-  const create = (_id: string | number, uid = Number(_id)): void => {
-    views[uid] = element()
+  const create = (id: string | number, uid = Number(id)): void => {
+    const view = element()
+    if (id === 'Terminal2') {
+      view.attrs = { class: 'Viewlet Terminal XtermTerminal', 'data-session-replay-terminal': '' }
+    }
+    views[uid] = view
   }
   const handlers: Record<Exclude<ReplayCommand, 'Viewlet.queueCommands'>, (...args: any[]) => void> = {
     'Css.addCssStyleSheet': setCss,

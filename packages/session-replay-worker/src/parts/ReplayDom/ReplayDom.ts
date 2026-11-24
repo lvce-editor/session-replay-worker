@@ -48,8 +48,22 @@ export const normalizeDom = (root: ReplayNode, assetBaseUrl?: string): ReplayNod
     if (++count > 100_000 || depth > 150 || !value || typeof value !== 'object') throw new Error('Invalid replay DOM')
     if (typeof value.text === 'string') return { text: value.text }
     const tag = value.tag && tags.includes(value.tag) && value.tag !== 'body' ? value.tag : 'div'
+    const attrs = normalizeAttributes(value, tag, assetBaseUrl)
+    if ('data-session-replay-terminal' in attrs) {
+      return {
+        attrs,
+        children: [
+          {
+            attrs: { style: 'display:block;padding:8px 12px;color:var(--TerminalForeground,var(--WorkbenchForeground,inherit))' },
+            children: [{ text: "Terminal data can't be replayed" }],
+            tag: 'span',
+          },
+        ],
+        tag: 'div',
+      }
+    }
     return {
-      attrs: normalizeAttributes(value, tag, assetBaseUrl),
+      attrs,
       checked: value.checked === true,
       children: (value.children || []).map((child) => visit(child, depth + 1)),
       scroll: Array.isArray(value.scroll) ? [value.scroll[0], value.scroll[1]] : [0, 0],
