@@ -14,10 +14,15 @@ export const capture = (document: Document): Frame => {
     if (omitted.includes(node.tagName)) return undefined
     // Attributes also work on XML elements without a dataset property.
     if (node.hasAttribute('data-session-replay-ignore')) return undefined
-    if (unsupported.includes(node.tagName) || node.matches('.Terminal, .TerminalView, .xterm, [data-session-replay-placeholder]')) {
+    const terminal = node.matches('.Terminal, .TerminalView, .XtermTerminal, .xterm')
+    if (terminal || unsupported.includes(node.tagName) || node.hasAttribute('data-session-replay-placeholder')) {
       const { height, width } = node.getBoundingClientRect()
       return {
-        attrs: { class: 'SessionReplayPlaceholder', style: `background:#808080;color:white;width:${width}px;height:${height}px;overflow:hidden` },
+        attrs: {
+          class: 'SessionReplayPlaceholder',
+          ...(terminal && { 'data-session-replay-terminal': '' }),
+          style: `background:#808080;color:white;width:${width}px;height:${height}px;overflow:hidden`,
+        },
         children: [{ text: 'Content unavailable in replay' }],
         tag: 'div',
       }

@@ -30,6 +30,55 @@ test('replays the assembled explorer and editor DOM using only the replay worker
   expect(workers.every((url) => url.endsWith('/dist/sessionReplayWorkerMain.js'))).toBe(true)
 })
 
+test('shows the terminal message when a recorded terminal pane is open', async ({ page }) => {
+  await page.evaluate(async () => {
+    const commands = [
+      ['Viewlet.createFunctionalRoot', 'Terminals', 1, true],
+      ['Viewlet.setDom2', 1, [{ className: 'Terminals', type: 4 }]],
+      ['Viewlet.appendToBody', 1],
+      ['Viewlet.create', 'Terminal2', 2],
+      ['Viewlet.setBounds', 2, 0, 0, 400, 160],
+      ['Viewlet.append', 1, 2],
+      ['Viewlet.dispose', 2],
+    ]
+    await window.api.mountPlayer(document.body, {
+      source: {
+        session: {
+          events: [
+            {
+              data: { commandReplay: true, dom: { children: [], tag: 'body' }, styles: [], viewport: [800, 600] },
+              sequence: 0,
+              timestamp: 0,
+              type: 'frame',
+            },
+            ...commands.map(([method, ...params], index) => ({
+              data: { connection: 1, direction: 'to-renderer', message: { method, params }, renderer: true },
+              sequence: index + 1,
+              timestamp: [0, 0, 0, 1000, 1000, 1000, 2000][index],
+              type: 'message',
+            })),
+          ],
+          version: 1,
+        },
+      },
+      workerUrl: '/dist/sessionReplayWorkerMain.js',
+    })
+  })
+  const panel = page.locator('.SessionReplaySurface .Terminals')
+  const message = panel.getByText("Terminal data can't be replayed", { exact: true })
+  const slider = page.getByRole('slider', { name: 'Session replay position' })
+  await expect(panel).toBeAttached()
+  await expect(message).toHaveCount(0)
+  await slider.evaluate((input: HTMLInputElement) => {
+    input.value = '1000'
+    input.dispatchEvent(new Event('input'))
+  })
+  await expect(message).toBeVisible()
+  await expect(panel.locator('.XtermTerminal')).toHaveCSS('height', '160px')
+  await slider.press('End')
+  await expect(message).toHaveCount(0)
+})
+
 test('playback and seeking continue through virtual DOM updates with missing children', async ({ page }) => {
   await page.evaluate(async () => {
     const messages = [

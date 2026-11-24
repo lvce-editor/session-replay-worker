@@ -114,7 +114,6 @@ export const cases: { name: string; run: () => Promise<void> }[] = [
   ...[
     ['canvas', '<canvas width="100" height="40"></canvas>'],
     ['iframe', '<iframe></iframe>'],
-    ['terminal', '<div class="Terminal">terminal output</div>'],
     ['native content', '<div data-session-replay-placeholder>native web contents</div>'],
   ].map(([name, html]) => ({
     name: `renders unsupported ${name} as a gray box`,
@@ -123,6 +122,18 @@ export const cases: { name: string; run: () => Promise<void> }[] = [
       await roundTrip(() => check(css('.SessionReplayPlaceholder', 'background-color') === 'rgb(128, 128, 128)', 'Placeholder is missing'))
     },
   })),
+  {
+    name: 'explains why terminal output is missing from a captured snapshot',
+    run: async (): Promise<void> => {
+      editor().innerHTML = '<div class="Terminal" style="height:80px">terminal output</div>'
+      const session = await record()
+      check(!JSON.stringify(session).includes('terminal output'), 'Stored recording contains terminal output')
+      await withPlayer({ session }, () => {
+        check(text('.SessionReplayPlaceholder') === "Terminal data can't be replayed", 'Terminal message is missing')
+        check(css('.SessionReplayPlaceholder', 'height') === '80px', 'Terminal height was not restored')
+      })
+    },
+  },
   {
     name: 'restores scrolling',
     run: async (): Promise<void> => {
